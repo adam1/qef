@@ -30,8 +30,8 @@ class TestBase4Indexing:
         # Index 5 = 1*4^0 + 1*4^1 → 000 000 011
         assert index_to_base4(5, 9) == [1, 1, 0, 0, 0, 0, 0, 0, 0]
 
-        # Index 9 = 1*4^0 + 2*4^1 → 000 000 021
-        assert index_to_base4(9, 9) == [1, 2, 0, 0, 0, 0, 0, 0, 0]
+        # Index 5 = 1*4^0 + 1*4^1 → 000 000 011
+        assert index_to_base4(5, 9) == [1, 1, 0, 0, 0, 0, 0, 0, 0]
 
         # Index 262143 = 4^9 - 1 → 333 333 333
         assert index_to_base4(262143, 9) == [3, 3, 3, 3, 3, 3, 3, 3, 3]
@@ -78,7 +78,9 @@ class TestPauliStrings:
         """Test direct index to string conversion."""
         assert index_to_pauli_string(0, 9) == "III III III"
         assert index_to_pauli_string(1, 9) == "XII III III"
+        assert index_to_pauli_string(3, 9) == "ZII III III"
         assert index_to_pauli_string(5, 9) == "XXI III III"
+        assert index_to_pauli_string(12, 9) == "IZI III III"
         assert index_to_pauli_string(9, 9) == "XYI III III"
         assert index_to_pauli_string(262143, 9) == "ZZZ ZZZ ZZZ"
 

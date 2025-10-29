@@ -3,9 +3,9 @@
 import pytest
 from sympy import Matrix, sqrt, simplify, conjugate, I
 
-from qef.lambda_hat import compute_lambda, compute_lambda_hat
+from qef.lambda_hat import compute_lambda
 from qef.states import create_shor_logical_zero
-from qef.operators import get_basis_P_n_t, get_pauli_operator
+from qef.operators import get_basis_P_n_t, get_pauli_operator, pauli_string_to_index
 
 
 class TestLambdaEntry:
@@ -51,126 +51,67 @@ class TestLambdaEntry:
 
             assert simplify(entry_st - conjugate(entry_ts)) == 0
 
-
-class TestLambdaHat:
-    """Test lambda-hat matrix computation."""
-
-    def test_lambda_hat_dimension_small(self):
-        """Test that λ̂ has correct dimension for small basis."""
-        # Use 2 qubits, P_{2,1} has dimension 1 + 3*2 = 7
-        ket_v = Matrix([1, 0, 0, 0])  # |00⟩
-        n_qubits = 2
-        basis = get_basis_P_n_t(n_qubits, 1)
-
-        lambda_hat_mat = compute_lambda_hat(basis, n_qubits, ket_v)
-
-        assert lambda_hat_mat.shape == (7, 7)
-
-    def test_lambda_hat_hermitian_small(self):
-        """Test that λ̂ is Hermitian."""
-        ket_v = Matrix([1, 0, 0, 0])  # |00⟩
-        n_qubits = 2
-        basis = get_basis_P_n_t(n_qubits, 1)
-
-        lambda_hat_mat = compute_lambda_hat(basis, n_qubits, ket_v)
-
-        # Check Hermitian property: λ̂ = λ̂†
-        for i in range(lambda_hat_mat.shape[0]):
-            for j in range(lambda_hat_mat.shape[1]):
-                assert simplify(lambda_hat_mat[i, j] - conjugate(lambda_hat_mat[j, i])) == 0
-
-    def test_lambda_hat_diagonal_real(self):
-        """Test that diagonal entries are real."""
-        ket_v = Matrix([1, 0, 0, 0])  # |00⟩
-        n_qubits = 2
-        basis = get_basis_P_n_t(n_qubits, 0)  # Just identity
-
-        lambda_hat_mat = compute_lambda_hat(basis, n_qubits, ket_v)
-
-        # Diagonal entries of Hermitian matrix should be real
-        for i in range(lambda_hat_mat.shape[0]):
-            entry = lambda_hat_mat[i, i]
-            # Check that imaginary part is zero
-            assert simplify(entry - conjugate(entry)) == 0
-
-    def test_lambda_hat_identity_only(self):
-        """Test λ̂ for basis with only identity."""
-        ket_v = Matrix([1, 0, 0, 0])  # |00⟩
-        n_qubits = 2
-
-        # Use just identity
-        basis = [0]
-
-        lambda_hat_mat = compute_lambda_hat(basis, n_qubits, ket_v)
-
-        # Should be 1x1 matrix with entry 1
-        assert lambda_hat_mat.shape == (1, 1)
-        assert simplify(lambda_hat_mat[0, 0]) == 1
-
-    def test_lambda_hat_structure_simple(self):
-        """Test λ̂ structure for a very simple case."""
-        # Use |0⟩ state for 1 qubit
-        ket_v = Matrix([1, 0])
-        n_qubits = 1
-
-        # Use full basis for 1 qubit: I, X, Y, Z (indices 0, 1, 2, 3)
-        basis = [0, 1, 2, 3]
-
-        lambda_hat_mat = compute_lambda_hat(basis, n_qubits, ket_v)
-
-        # Check dimension
-        assert lambda_hat_mat.shape == (4, 4)
-
-        # For |0⟩:
-        # ⟨0|I† I|0⟩ = 1
-        assert simplify(lambda_hat_mat[0, 0]) == 1
-
-        # ⟨0|I† X|0⟩ = ⟨0|X|0⟩ = 0
-        assert simplify(lambda_hat_mat[0, 1]) == 0
-
-        # ⟨0|I† Y|0⟩ = ⟨0|Y|0⟩ = 0
-        assert simplify(lambda_hat_mat[0, 2]) == 0
-
-        # ⟨0|I† Z|0⟩ = ⟨0|Z|0⟩ = 1
-        assert simplify(lambda_hat_mat[0, 3]) == 1
-
-        # ⟨0|X† X|0⟩ = ⟨0|I|0⟩ = 1
-        assert simplify(lambda_hat_mat[1, 1]) == 1
-
-        # ⟨0|X† Y|0⟩ = ⟨0|iZ|0⟩ = i
-        # Actually X†Y = -iZ for Paulis, but let's compute it
-        entry_XY = lambda_hat_mat[1, 2]
-        # This should be iZ applied to |0⟩ = i|0⟩, so ⟨0|iZ|0⟩ = i
-        # Actually we need to check the sign conventions...
-        # Let's just verify it's Hermitian
-        assert simplify(lambda_hat_mat[1, 2] - conjugate(lambda_hat_mat[2, 1])) == 0
-
-    def test_lambda_hat_two_qubit_P_2_1(self):
-        """Test 2-qubit P_{2,1} basis (dimension 7)."""
-        # Use |00⟩
-        ket_v = Matrix([1, 0, 0, 0])
-        n_qubits = 2
-        basis = get_basis_P_n_t(n_qubits, 1)
-
-        lambda_hat_mat = compute_lambda_hat(basis, n_qubits, ket_v)
-
-        # Basic checks
-        assert lambda_hat_mat.shape == (7, 7)
-        assert simplify(lambda_hat_mat[0, 0]) == 1  # ⟨00|I|00⟩ = 1
-
-        # Verify Hermitian
-        assert lambda_hat_mat == lambda_hat_mat.H
-
-    def test_lambda_single_entry_shor_code(self):
-        """Test a single λ value computation with Shor code (spot check)."""
+    def test_lambda_shor_code(self):
+        """Test λ values for Shor code with Hermitian property spot checks."""
         ket_v = create_shor_logical_zero()
         n_qubits = 9
 
-        # Just compute λ(I, I) - should be 1
+        # Basic checks
+        # λ(I, I) = ⟨0_L|I†I|0_L⟩ = 1
         entry = compute_lambda(0, 0, n_qubits, ket_v)
         assert simplify(entry) == 1
 
-        # Compute a few more individual entries without building full matrix
         # λ(I, X_0) should be 0 for Shor code
         entry = compute_lambda(0, 1, n_qubits, ket_v)
         assert simplify(entry) == 0
+
+        # λ(Z_1, Z_2) should be 1
+        entry = compute_lambda(
+            pauli_string_to_index("ZII III III", 9),
+            pauli_string_to_index("IZI III III", 9),
+            n_qubits, ket_v)
+        assert simplify(entry) == 1
+
+        # Hermitian property spot checks: λ(s, t) = conj(λ(t, s))
+
+        # Check (I, X_0) vs (X_0, I)
+        lambda_I_X0 = compute_lambda(0, 1, n_qubits, ket_v)
+        lambda_X0_I = compute_lambda(1, 0, n_qubits, ket_v)
+        assert simplify(lambda_I_X0 - conjugate(lambda_X0_I)) == 0
+
+        # Check (I, Y_0) vs (Y_0, I)
+        lambda_I_Y0 = compute_lambda(0, 2, n_qubits, ket_v)
+        lambda_Y0_I = compute_lambda(2, 0, n_qubits, ket_v)
+        assert simplify(lambda_I_Y0 - conjugate(lambda_Y0_I)) == 0
+
+        # Check (I, Z_0) vs (Z_0, I)
+        lambda_I_Z0 = compute_lambda(0, 3, n_qubits, ket_v)
+        lambda_Z0_I = compute_lambda(3, 0, n_qubits, ket_v)
+        assert simplify(lambda_I_Z0 - conjugate(lambda_Z0_I)) == 0
+
+        # Check (X_0, Y_0) vs (Y_0, X_0)
+        lambda_X0_Y0 = compute_lambda(1, 2, n_qubits, ket_v)
+        lambda_Y0_X0 = compute_lambda(2, 1, n_qubits, ket_v)
+        assert simplify(lambda_X0_Y0 - conjugate(lambda_Y0_X0)) == 0
+
+        # Check (X_0, Z_0) vs (Z_0, X_0)
+        lambda_X0_Z0 = compute_lambda(1, 3, n_qubits, ket_v)
+        lambda_Z0_X0 = compute_lambda(3, 1, n_qubits, ket_v)
+        assert simplify(lambda_X0_Z0 - conjugate(lambda_Z0_X0)) == 0
+
+        # Check (Y_0, Z_0) vs (Z_0, Y_0)
+        lambda_Y0_Z0 = compute_lambda(2, 3, n_qubits, ket_v)
+        lambda_Z0_Y0 = compute_lambda(3, 2, n_qubits, ket_v)
+        assert simplify(lambda_Y0_Z0 - conjugate(lambda_Z0_Y0)) == 0
+
+        # Check across different qubits: (X_0, X_1) vs (X_1, X_0)
+        # X_1 has index 1 + 3*1 = 4
+        lambda_X0_X1 = compute_lambda(1, 4, n_qubits, ket_v)
+        lambda_X1_X0 = compute_lambda(4, 1, n_qubits, ket_v)
+        assert simplify(lambda_X0_X1 - conjugate(lambda_X1_X0)) == 0
+
+        # Check (Z_1, Z_2) vs (Z_2, Z_1)
+        lambda_Y0_Z0 = compute_lambda(3, 7, n_qubits, ket_v)
+        lambda_Z0_Y0 = compute_lambda(7, 3, n_qubits, ket_v)
+        assert simplify(lambda_Y0_Z0 - conjugate(lambda_Z0_Y0)) == 0
+

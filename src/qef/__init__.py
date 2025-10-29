@@ -22,7 +22,6 @@ from .states import (
 
 from .lambda_hat import (
     compute_lambda,
-    compute_lambda_hat,
 )
 
 __version__ = "0.1.0"
@@ -39,5 +38,4 @@ __all__ = [
     "create_shor_logical_zero",
     "create_shor_logical_one",
     "compute_lambda",
-    "compute_lambda_hat",
 ]
