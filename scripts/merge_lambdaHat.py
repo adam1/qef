@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Merge partial lambda matrix files into a single matrix file.
+Merge partial lambda-hat matrix λ̂ files into a single matrix file.
 
 This script reads multiple partial matrix files and combines them into a single
 output file containing the complete matrix in sparse format.
@@ -84,7 +84,7 @@ def merge_partial_files(partial_files):
 
 def fill_hermitian(entries, matrix_dim):
     """
-    Fill in the lower triangular part using Hermitian property.
+    Fill in the lower triangular part of λ̂ using Hermitian property.
 
     For entries in upper triangle (i, j) where i < j, add (j, i) = conj((i, j)).
 
@@ -118,7 +118,7 @@ def write_merged_file(entries, matrix_dim, output_file):
 
     with open(output_file, 'w') as f:
         # Write header
-        f.write(f"# Lambda matrix for Shor code P_{{9,1}} basis\n")
+        f.write(f"# Lambda-hat matrix λ̂ for Shor code P_{{9,1}} basis\n")
         f.write(f"# Dimension: {matrix_dim}\n")
         f.write(f"# Timestamp: {timestamp()}\n")
         f.write(f"# Format: row col srepr_value (sparse, only non-zero entries)\n")
@@ -134,7 +134,7 @@ def write_merged_file(entries, matrix_dim, output_file):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Merge partial lambda matrix files'
+        description='Merge partial lambda-hat matrix λ̂ files'
     )
     parser.add_argument(
         'partial_files',
@@ -162,7 +162,7 @@ def main():
     args = parser.parse_args()
 
     log("=" * 70)
-    log("Merging partial lambda matrix files")
+    log("Merging partial lambda-hat matrix λ̂ files")
     log("=" * 70)
     print()
 

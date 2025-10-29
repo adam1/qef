@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Compute a subset of columns of the lambda matrix for parallel computation.
+Compute a subset of columns of the lambda-hat matrix λ̂ for parallel computation.
 
 This script computes columns col_start through col_end (inclusive) of the
-lambda matrix and saves the partial result to a text file.
+matrix λ̂ and saves the partial result to a text file.
 
 Output format: one line per entry
     row col srepr_value
@@ -15,7 +15,7 @@ from sympy import srepr
 
 from qef.states import create_shor_logical_zero
 from qef.operators import get_basis_P_n_t, index_to_pauli_string
-from qef.lambda_matrix import compute_lambda_entry
+from qef.lambda_hat import compute_lambda
 
 
 def timestamp():
@@ -28,11 +28,11 @@ def log(message):
     print(f"[{timestamp()}] {message}")
 
 
-def compute_partial_lambda_matrix(basis_indices, n_qubits, ket_v, col_start, col_end, output_file):
+def compute_partial_lambda_hat(basis_indices, n_qubits, ket_v, col_start, col_end, output_file):
     """
-    Compute a subset of columns of the lambda matrix.
+    Compute a subset of columns of the lambda-hat matrix λ̂.
 
-    Since lambda is Hermitian, we compute the upper triangular part.
+    Since λ̂ is Hermitian, we compute the upper triangular part.
     For columns col_start through col_end, we compute entries (i, j) where i <= j.
 
     Args:
@@ -62,9 +62,9 @@ def compute_partial_lambda_matrix(basis_indices, n_qubits, ket_v, col_start, col
             s_str = index_to_pauli_string(s_index, n_qubits)
             t_str = index_to_pauli_string(t_index, n_qubits)
 
-            log(f"  λ[{i},{j}]: ({s_str}) × ({t_str})")
+            log(f"  λ̂[{i},{j}]: ({s_str}) × ({t_str})")
 
-            entry = compute_lambda_entry(s_index, t_index, n_qubits, ket_v)
+            entry = compute_lambda(s_index, t_index, n_qubits, ket_v)
             entry_simplified = entry.simplify()
 
             # Only write non-zero entries (sparse format)
@@ -78,7 +78,7 @@ def compute_partial_lambda_matrix(basis_indices, n_qubits, ket_v, col_start, col
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Compute partial lambda matrix for Shor code'
+        description='Compute partial lambda-hat matrix λ̂ for Shor code'
     )
     parser.add_argument(
         'col_start',
@@ -104,7 +104,7 @@ def main():
     t = 1  # At most 1 qubit affected
 
     log("=" * 70)
-    log(f"Computing partial λ matrix: columns {args.col_start}-{args.col_end}")
+    log(f"Computing partial λ̂ matrix: columns {args.col_start}-{args.col_end}")
     log("=" * 70)
     print()
 
@@ -122,12 +122,12 @@ def main():
     # Compute and write the partial matrix
     with open(args.output, 'w') as f:
         # Write header with metadata
-        f.write(f"# Partial lambda matrix for Shor code P_{{9,1}} basis\n")
+        f.write(f"# Partial lambda-hat matrix λ̂ for Shor code P_{{9,1}} basis\n")
         f.write(f"# Columns: {args.col_start} to {args.col_end}\n")
         f.write(f"# Timestamp: {timestamp()}\n")
         f.write(f"# Format: row col srepr_value\n")
 
-        compute_partial_lambda_matrix(basis, n_qubits, ket_0L, args.col_start, args.col_end, f)
+        compute_partial_lambda_hat(basis, n_qubits, ket_0L, args.col_start, args.col_end, f)
 
     print()
     log(f"Successfully saved to {args.output}")

@@ -1,4 +1,4 @@
-# Makefile for computing lambda matrix for Shor code
+# Makefile for computing lambda-hat matrix λ̂ for Shor code
 
 # Configuration
 PYTHON := python3.11
@@ -29,10 +29,10 @@ PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DI
 .PHONY: all clean lambdaHat help
 
 help:
-	@echo "Makefile for computing lambda matrix"
+	@echo "Makefile for computing lambda-hat matrix λ̂"
 	@echo ""
 	@echo "Targets:"
-	@echo "  lambdaHat    - Compute the lambda matrix (parallelized)"
+	@echo "  lambdaHat    - Compute the lambda-hat matrix λ̂ (parallelized)"
 	@echo "  clean        - Remove output files"
 	@echo "  help         - Show this help message"
 	@echo ""
