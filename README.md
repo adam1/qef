@@ -45,28 +45,65 @@ $$
 
 and $`\dim \mathcal{E}_1 = |\mathcal{P_{9,1}}| = 28`$.
 
-The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.h5`.
+The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.txt`.
 
-### Error forms $D_{\lambda, E, F}$
+```
+mkdir worksets/000-demo
+cd worksets/000-demo
+make -f ../Makefile lambdaHat
+...
+make -f ../Makefile rank-lambdaHat
+...
+[2025-11-08 21:20:52] ======================================================================
+[2025-11-08 21:20:52] RESULT: rank = 22
+[2025-11-08 21:20:52] ======================================================================
+```
+
+### Error forms $B_{\lambda, E, F}$
+
+The notation $`(E, F)^*B`$ means the _mixed pullback_ of $B$ by $E$ and $F$, defined by $`(E, F)^*B(u, v) = B(Eu, Fv)`$. Define
+
+$$
+    B_{\lambda, E, F} = (E, F)^*B - \lambda(E, F) \cdot B.
+$$
+
+```
+cd worksets/000-demo
+make -f ../Makefile Bhat-on-M
+...
+2025-10-31 23:53:54] ======================================================================
+[2025-10-31 23:53:54] All pairs processed!
+[2025-10-31 23:53:54]
+[2025-10-31 23:53:54] Total pairs checked: 784
+[2025-10-31 23:53:54] Violations found: 0
+...
+make -f ../Makefile Bhat-hermitian
+...
+[2025-11-02 00:12:49] ======================================================================
+[2025-11-02 00:12:49] All pairs processed!
+[2025-11-02 00:12:49]
+[2025-11-02 00:12:49] Total pairs checked: 784
+[2025-11-02 00:12:49] Hermitian matrices: 730
+[2025-11-02 00:12:49] Non-Hermitian matrices: 54
+...
+```
 
 
-Fix $`\mathcal{E} = \mathcal{E}_1`$. The next step is to compute the matrix $`\widehat{D} = \widehat{D}_{\mathcal{E}, \lambda}`$, the matrix corresponding to the total error form $`D_{\mathcal{E}, \lambda}`$ in the computational basis. We need some building blocks for this, intermediate expressions that will eventually be composed to compute the whole form.
 
-In this section, we denote by $B$ the standard inner product on $`\mathcal{H}_n`$. Let $`\{e_i\}`$ be the computational basis for $`\mathcal{H}_n`$. For any pair $`E, F \in \mathcal{P}_{9,1}`$, abbreviate $`\lambda = \lambda(E, F)`$, and define
+### Total error form $D_{\lambda, \mathcal{E}}$
+
+The _total error form_ $D_{\mathcal{E}, \lambda}$ is 
 
 ```math
-\begin{align*}
-D_{\lambda, E, F} &= \sum_k (
-    \left(\tfrac{1}{2} (E+F)^{*}B - \Re(\lambda) B \right)(x, e_k)
-    \cdot \left(\tfrac{1}{2} (E+F)^{*}B - \Re(\lambda) B \right)(e_k, y)\\
-& \quad \ \ \ + 
-    \left(\tfrac{1}{2} (E+F)^{*}B - \Im(\lambda)i B \right)(x, e_k)
-    \cdot \left(\tfrac{1}{2} (E+F)^{*}B - \Im(\lambda)i B \right)(e_k, y)
-).
-\end{align*}
+D_{\mathcal{E}, \lambda} = \sum_{E, F \in \mathcal{P}_{9,1}} B_{\lambda, E, F}.
 ```
-Here, $G^*B$ denotes the pullback form defined by
 
-```math
-G^*B(x, y) = B(Gx, Gy).
+Abbreviating $D := D_{\mathcal{E}, \lambda}$, we compute the matrix $\widehat{D}$ corresponding to $D$ with respect to the computational basis of $\mathcal{H}_n$.
+
 ```
+cd worksets/000-demo
+make -f ../Makefile Dhat
+
+make -f ../Makefile rank-Dhat
+```
+
