@@ -8,11 +8,14 @@ MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_lambdaHat.py
 
 # Output files
 OUTPUT_DIR := output
-FINAL_OUTPUT := lambdaHat.txt
+FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
 
 # Matrix parameters
 MATRIX_DIM := 28  # Dimension of P_{9,1}
 NUM_WORKERS := 4   # Number of parallel workers (adjust based on CPU cores)
+
+# Run identification (timestamp and PID for this make invocation)
+RUN_ID := $(shell date '+%s')_$$$$
 
 # Compute column ranges for each worker
 # We divide 28 columns (0-27) into NUM_WORKERS chunks
@@ -33,7 +36,7 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@echo "  lambdaHat    - Compute the lambda-hat matrix λ̂ (parallelized)"
-	@echo "  clean        - Remove output files"
+	@echo "  clean        - Remove output files and logs"
 	@echo "  help         - Show this help message"
 	@echo ""
 	@echo "Configuration:"
@@ -41,6 +44,12 @@ help:
 	@echo "  Number of workers: $(NUM_WORKERS)"
 	@echo "  Output directory: $(OUTPUT_DIR)"
 	@echo "  Final output: $(FINAL_OUTPUT)"
+	@echo ""
+	@echo "Usage:"
+	@echo "  make lambdaHat       - Sequential computation"
+	@echo "  make -j4 lambdaHat   - Parallel with 4 workers"
+	@echo ""
+	@echo "Worker logs will be in: $(OUTPUT_DIR)/worker_<timestamp>_<pid>_<worker_id>.log"
 
 all: lambdaHat
 
@@ -68,10 +77,9 @@ $(OUTPUT_DIR)/partial_%.txt: $(PARTIAL_SCRIPT) | $(OUTPUT_DIR)
 	else \
 		COL_END=$$(($$COL_START + $(COLS_PER_WORKER) - 1)); \
 	fi; \
-	echo "========================================"; \
-	echo "Worker $$WORKER_ID: Computing columns $$COL_START-$$COL_END"; \
-	echo "========================================"; \
-	$(PYTHON) $(PARTIAL_SCRIPT) $$COL_START $$COL_END -o $@
+	LOG_FILE=$(OUTPUT_DIR)/worker_$(RUN_ID)_$$WORKER_ID.log; \
+	echo "Worker $$WORKER_ID: Computing columns $$COL_START-$$COL_END (log: $$LOG_FILE)"; \
+	$(PYTHON) $(PARTIAL_SCRIPT) $$COL_START $$COL_END -o $@ > $$LOG_FILE 2>&1
 
 # Clean generated files
 clean:
