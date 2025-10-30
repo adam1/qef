@@ -65,8 +65,8 @@ D_{\lambda, E, F} &= \sum_k (
 ).
 \end{align*}
 ```
-Here, $(E, F)^*B$ denotes the _mixed pullback_ defined by
+Here, $G^*B$ denotes the pullback form defined by
 
 ```math
-(E, F)^*B(x, y) = B(Ex, Fy).
+G^*B(x, y) = B(Gx, Gy).
 ```
