@@ -34,6 +34,16 @@ from qef.operators import get_basis_P_n_t
 from qef.error_forms import compute_D_lambda_EF
 
 
+def timestamp():
+    """Return current timestamp as a string."""
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def log(message):
+    """Print a message with a timestamp."""
+    print(f"[{timestamp()}] {message}")
+
+
 def compute_column_range(args):
     """
     Worker function to compute a range of columns of D̂.
@@ -50,7 +60,7 @@ def compute_column_range(args):
     worker_id, col_start, col_end, n_qubits, max_weight, output_dir = args
 
     # Log start
-    print(f"Worker {worker_id}: Computing columns {col_start}-{col_end}")
+    log(f"Worker {worker_id}: Computing columns {col_start}-{col_end}")
 
     # Get the basis P_{n,t}
     basis = get_basis_P_n_t(n_qubits, max_weight)
@@ -76,7 +86,7 @@ def compute_column_range(args):
             pair_count += 1
 
             if pair_count % 10 == 0:
-                print(f"Worker {worker_id}: Processing pair {pair_count}/{total_pairs} (E={E_idx}, F={F_idx})")
+                log(f"Worker {worker_id}: Processing pair {pair_count}/{total_pairs} (E={E_idx}, F={F_idx})")
 
             # Compute D̂_{λ,E,F}
             D_lambda_EF = compute_D_lambda_EF(E_idx, F_idx, n_qubits, ket_v)
@@ -98,14 +108,14 @@ def compute_column_range(args):
     # Write results to file
     output_file = Path(output_dir) / f"dhat_partial_{worker_id}.txt"
 
-    print(f"Worker {worker_id}: Writing {len(accumulator)} non-zero entries to {output_file}")
+    log(f"Worker {worker_id}: Writing {len(accumulator)} non-zero entries to {output_file}")
 
     with open(output_file, "w") as f:
         for (row, col), val in sorted(accumulator.items()):
             # Write in sparse format: row col srepr(value)
             f.write(f"{row} {col} {srepr(val)}\n")
 
-    print(f"Worker {worker_id}: Completed columns {col_start}-{col_end}")
+    log(f"Worker {worker_id}: Completed columns {col_start}-{col_end}")
 
     return worker_id, str(output_file)
 
@@ -147,14 +157,13 @@ def main():
     # Compute matrix dimension
     dim = 2 ** args.n_qubits
 
-    print("=" * 60)
-    print(f"Computing D̂ matrix using {args.workers} workers")
-    print(f"Matrix dimension: {dim}×{dim}")
-    print(f"Number of qubits: {args.n_qubits}")
-    print(f"Basis: P_{{{args.n_qubits},{args.max_weight}}}")
-    print(f"Output directory: {output_dir}")
-    print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("=" * 60)
+    log("=" * 60)
+    log(f"Computing D̂ matrix using {args.workers} workers")
+    log(f"Matrix dimension: {dim}×{dim}")
+    log(f"Number of qubits: {args.n_qubits}")
+    log(f"Basis: P_{{{args.n_qubits},{args.max_weight}}}")
+    log(f"Output directory: {output_dir}")
+    log("=" * 60)
 
     # Divide columns among workers
     cols_per_worker = dim // args.workers
@@ -179,20 +188,23 @@ def main():
         ))
 
     # Create process pool and run workers
-    print(f"\nSpawning {args.workers} worker processes...")
+    log("")
+    log(f"Spawning {args.workers} worker processes...")
 
     with mp.Pool(processes=args.workers) as pool:
         results = pool.map(compute_column_range, worker_args)
 
-    print("\n" + "=" * 60)
-    print("All workers completed successfully!")
-    print(f"Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("\nPartial files created:")
+    log("")
+    log("=" * 60)
+    log("All workers completed successfully!")
+    log("")
+    log("Partial files created:")
     for worker_id, output_file in sorted(results):
-        print(f"  Worker {worker_id}: {output_file}")
-    print("=" * 60)
+        log(f"  Worker {worker_id}: {output_file}")
+    log("=" * 60)
 
-    print(f"\nNext step: merge partial files using merge_Dhat.py")
+    log("")
+    log("Next step: merge partial files using merge_Dhat.py")
 
 
 if __name__ == "__main__":

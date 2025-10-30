@@ -20,7 +20,7 @@ DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
 # Matrix parameters
 LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
 DHAT_MATRIX_DIM := 512      # Dimension of computational basis for 9 qubits
-NUM_WORKERS := 4            # Number of parallel workers (adjust based on CPU cores)
+NUM_WORKERS := 6            # Number of parallel workers (adjust based on CPU cores)
 N_QUBITS := 9               # Number of qubits
 MAX_WEIGHT := 1             # Maximum weight t for P_{n,t} basis
 
@@ -72,7 +72,7 @@ help:
 	@echo ""
 	@echo "Logs:"
 	@echo "  λ̂ workers: $(OUTPUT_DIR)/lambdaHat_worker_<timestamp>_<pid>_<worker_id>.log"
-	@echo "  D̂ script: Output to stdout/stderr"
+	@echo "  D̂ computation: $(OUTPUT_DIR)/dhat_<timestamp>_<pid>.log"
 
 all: lambdaHat
 
@@ -128,7 +128,9 @@ $(DHAT_PARTIAL_FILES): $(DHAT_PARALLEL_SCRIPT) | $(OUTPUT_DIR)
 	@echo "========================================"
 	@echo "Computing D̂ matrix with $(NUM_WORKERS) workers..."
 	@echo "========================================"
-	$(PYTHON) $(DHAT_PARALLEL_SCRIPT) -o $(OUTPUT_DIR) -w $(NUM_WORKERS) -n $(N_QUBITS) -t $(MAX_WEIGHT)
+	@LOG_FILE=$(OUTPUT_DIR)/dhat_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(DHAT_PARALLEL_SCRIPT) -o $(OUTPUT_DIR) -w $(NUM_WORKERS) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets
@@ -143,6 +145,7 @@ clean-lambdaHat:
 # Clean D̂ files
 clean-Dhat:
 	rm -f $(OUTPUT_DIR)/dhat_partial_*.txt
+	rm -f $(OUTPUT_DIR)/dhat_*.log
 	rm -f $(DHAT_FINAL_OUTPUT)
 
 # Clean all generated files
