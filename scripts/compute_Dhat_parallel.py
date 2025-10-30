@@ -41,7 +41,7 @@ def timestamp():
 
 def log(message):
     """Print a message with a timestamp."""
-    print(f"[{timestamp()}] {message}")
+    print(f"[{timestamp()}] {message}", flush=True)
 
 
 def compute_column_range(args):
@@ -85,8 +85,8 @@ def compute_column_range(args):
         for F_idx in basis:
             pair_count += 1
 
-            if pair_count % 10 == 0:
-                log(f"Worker {worker_id}: Processing pair {pair_count}/{total_pairs} (E={E_idx}, F={F_idx})")
+            #if pair_count % 10 == 0:
+            log(f"Worker {worker_id}: Processing pair {pair_count}/{total_pairs} (E={E_idx}, F={F_idx})")
 
             # Compute D̂_{λ,E,F}
             D_lambda_EF = compute_D_lambda_EF(E_idx, F_idx, n_qubits, ket_v)

@@ -18,7 +18,7 @@ def timestamp():
 
 def log(message):
     """Print a message with a timestamp."""
-    print(f"[{timestamp()}] {message}")
+    print(f"[{timestamp()}] {message}", flush=True)
 
 
 def read_partial_file(filename):

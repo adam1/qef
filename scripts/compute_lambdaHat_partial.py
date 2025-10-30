@@ -25,7 +25,7 @@ def timestamp():
 
 def log(message):
     """Print a message with a timestamp."""
-    print(f"[{timestamp()}] {message}")
+    print(f"[{timestamp()}] {message}", flush=True)
 
 
 def compute_partial_lambda_hat(basis_indices, n_qubits, ket_v, col_start, col_end, output_file):
