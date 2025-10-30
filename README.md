@@ -70,3 +70,14 @@ Here, $G^*B$ denotes the pullback form defined by
 ```math
 G^*B(x, y) = B(Gx, Gy).
 ```
+
+### Total error form $D_{\lambda, \mathcal{E}}$
+
+The _total error form_ $D_{\lambda, \mathcal{E}}$ is 
+
+```math
+D_{\lambda, \mathcal{E}} = \sum_{E, F \in \mathcal{P}_{9,1}} D_{\lambda, E, F}.
+```
+
+Abbreviating $D := D_{\lambda, \mathcal{E}}$, we compute the matrix $\widehat{D}$ corresponding to $D$ with respect to the computational basis of $\mathcal{H}_n$.
+
