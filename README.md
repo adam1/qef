@@ -2,6 +2,7 @@
 
 (A writeup of the details with proofs is in my 2025 PhD thesis.)
 
+### Hermitian form $\lambda$
 Let $\mathcal{H}_n = (\mathbb{C}^2)^{\otimes n}$ be the state space of $n$ qubits.  Let $M \le \mathcal{H}_n$ be a quantum code. 
 
 Let $\mathcal{E} \le \mathrm{End}_\mathbb{C}(\mathcal{H}_n)$ be an error space, and suppose $M$ corrects $\mathcal{E}$.  
@@ -46,7 +47,7 @@ and $`\dim \mathcal{E}_1 = |\mathcal{P_{9,1}}| = 28`$.
 
 The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.h5`.
 
----
+### Error forms $D_{\lambda, E, F}$
 
 
 Fix $`\mathcal{E} = \mathcal{E}_1`$. The next step is to compute the matrix $`\widehat{D} = \widehat{D}_{\mathcal{E}, \lambda}`$, the matrix corresponding to the total error form $`D_{\mathcal{E}, \lambda}`$ in the computational basis. We need some building blocks for this, intermediate expressions that will eventually be composed to compute the whole form.
@@ -64,4 +65,8 @@ D_{\lambda, E, F} &= \sum_k (
 ).
 \end{align*}
 ```
+Here, $(E, F)^*B$ denotes the _mixed pullback_ defined by
 
+```math
+(E, F)^*B(x, y) = B(Ex, Fy).
+```
