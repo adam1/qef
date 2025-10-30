@@ -1,87 +1,150 @@
-# Makefile for computing lambda-hat matrix λ̂ for Shor code
+# Makefile for computing lambda-hat matrix λ̂ and D̂ matrix for Shor code
 
 # Configuration
 PYTHON := python3.11
 SCRIPTS_DIR := ../../scripts
-PARTIAL_SCRIPT := $(SCRIPTS_DIR)/compute_lambdaHat_partial.py
-MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_lambdaHat.py
+
+# Scripts for lambdaHat computation (make-based parallelization)
+LAMBDAHAT_PARTIAL_SCRIPT := $(SCRIPTS_DIR)/compute_lambdaHat_partial.py
+LAMBDAHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_lambdaHat.py
+
+# Scripts for D̂ computation (multiprocessing-based parallelization)
+DHAT_PARALLEL_SCRIPT := $(SCRIPTS_DIR)/compute_Dhat_parallel.py
+DHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_Dhat.py
 
 # Output files
 OUTPUT_DIR := output
-FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
+LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
+DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
 
 # Matrix parameters
-MATRIX_DIM := 28  # Dimension of P_{9,1}
-NUM_WORKERS := 4   # Number of parallel workers (adjust based on CPU cores)
+LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
+DHAT_MATRIX_DIM := 512      # Dimension of computational basis for 9 qubits
+NUM_WORKERS := 4            # Number of parallel workers (adjust based on CPU cores)
+N_QUBITS := 9               # Number of qubits
+MAX_WEIGHT := 1             # Maximum weight t for P_{n,t} basis
 
 # Run identification (timestamp and PID for this make invocation)
 RUN_ID := $(shell date '+%s')_$$$$
 
-# Compute column ranges for each worker
+# Compute column ranges for each worker (for lambdaHat)
 # We divide 28 columns (0-27) into NUM_WORKERS chunks
 # Worker 0: columns 0-6   (7 columns)
 # Worker 1: columns 7-13  (7 columns)
 # Worker 2: columns 14-20 (7 columns)
 # Worker 3: columns 21-27 (7 columns)
 
-COLS_PER_WORKER := $(shell echo $$(($(MATRIX_DIM) / $(NUM_WORKERS))))
+LAMBDAHAT_COLS_PER_WORKER := $(shell echo $$(($(LAMBDAHAT_MATRIX_DIM) / $(NUM_WORKERS))))
 
-# Generate list of partial output files
-PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/partial_$(i).txt)
+# Generate list of partial output files for lambdaHat
+LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat help
+# Generate list of partial output files for D̂
+DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
+
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat help
 
 help:
-	@echo "Makefile for computing lambda-hat matrix λ̂"
+	@echo "Makefile for computing quantum error correction matrices"
 	@echo ""
 	@echo "Targets:"
-	@echo "  lambdaHat    - Compute the lambda-hat matrix λ̂ (parallelized)"
-	@echo "  clean        - Remove output files and logs"
-	@echo "  help         - Show this help message"
+	@echo "  lambdaHat       - Compute the lambda-hat matrix λ̂ (make-based parallelization)"
+	@echo "  Dhat            - Compute the total error form matrix D̂ (multiprocessing)"
+	@echo "  clean-lambdaHat - Remove lambdaHat output files and logs"
+	@echo "  clean-Dhat      - Remove D̂ output files and logs"
+	@echo "  clean           - Remove all output files and logs"
+	@echo "  help            - Show this help message"
 	@echo ""
 	@echo "Configuration:"
-	@echo "  Matrix dimension: $(MATRIX_DIM)"
+	@echo "  λ̂ matrix dimension: $(LAMBDAHAT_MATRIX_DIM) (P_{$(N_QUBITS),$(MAX_WEIGHT)} basis)"
+	@echo "  D̂ matrix dimension: $(DHAT_MATRIX_DIM)×$(DHAT_MATRIX_DIM) (computational basis)"
 	@echo "  Number of workers: $(NUM_WORKERS)"
 	@echo "  Output directory: $(OUTPUT_DIR)"
-	@echo "  Final output: $(FINAL_OUTPUT)"
 	@echo ""
 	@echo "Usage:"
-	@echo "  make lambdaHat       - Sequential computation"
-	@echo "  make -j4 lambdaHat   - Parallel with 4 workers"
+	@echo "  make lambdaHat          - Sequential λ̂ computation"
+	@echo "  make -j4 lambdaHat      - Parallel λ̂ with 4 workers"
+	@echo "  make Dhat               - Compute D̂ with $(NUM_WORKERS) workers"
 	@echo ""
-	@echo "Worker logs will be in: $(OUTPUT_DIR)/worker_<timestamp>_<pid>_<worker_id>.log"
+	@echo "Output files:"
+	@echo "  λ̂: $(LAMBDAHAT_FINAL_OUTPUT)"
+	@echo "  D̂: $(DHAT_FINAL_OUTPUT)"
+	@echo ""
+	@echo "Logs:"
+	@echo "  λ̂ workers: $(OUTPUT_DIR)/lambdaHat_worker_<timestamp>_<pid>_<worker_id>.log"
+	@echo "  D̂ script: Output to stdout/stderr"
 
 all: lambdaHat
-
-# Main target: compute lambdaHat
-lambdaHat: $(FINAL_OUTPUT)
 
 # Create output directory
 $(OUTPUT_DIR):
 	mkdir -p $(OUTPUT_DIR)
 
+#==============================================================================
+# λ̂ (lambda-hat) computation targets
+#==============================================================================
+
+# Main target: compute lambdaHat
+lambdaHat: $(LAMBDAHAT_FINAL_OUTPUT)
+
 # Merge partial files into final output
-$(FINAL_OUTPUT): $(PARTIAL_FILES) $(MERGE_SCRIPT)
+$(LAMBDAHAT_FINAL_OUTPUT): $(LAMBDAHAT_PARTIAL_FILES) $(LAMBDAHAT_MERGE_SCRIPT)
 	@echo "========================================"
-	@echo "Merging partial results..."
+	@echo "Merging partial λ̂ results..."
 	@echo "========================================"
-	$(PYTHON) $(MERGE_SCRIPT) $(PARTIAL_FILES) -o $(FINAL_OUTPUT) --dimension $(MATRIX_DIM)
+	$(PYTHON) $(LAMBDAHAT_MERGE_SCRIPT) $(LAMBDAHAT_PARTIAL_FILES) -o $(LAMBDAHAT_FINAL_OUTPUT) --dimension $(LAMBDAHAT_MATRIX_DIM)
 
-# Pattern rule for computing partial files
+# Pattern rule for computing partial lambdaHat files
 # This uses shell arithmetic to compute column ranges
-$(OUTPUT_DIR)/partial_%.txt: $(PARTIAL_SCRIPT) | $(OUTPUT_DIR)
+$(OUTPUT_DIR)/lambdaHat_partial_%.txt: $(LAMBDAHAT_PARTIAL_SCRIPT) | $(OUTPUT_DIR)
 	@WORKER_ID=$*; \
-	COL_START=$$(($$WORKER_ID * $(COLS_PER_WORKER))); \
+	COL_START=$$(($$WORKER_ID * $(LAMBDAHAT_COLS_PER_WORKER))); \
 	if [ $$WORKER_ID -eq $$(($(NUM_WORKERS) - 1)) ]; then \
-		COL_END=$$(($(MATRIX_DIM) - 1)); \
+		COL_END=$$(($(LAMBDAHAT_MATRIX_DIM) - 1)); \
 	else \
-		COL_END=$$(($$COL_START + $(COLS_PER_WORKER) - 1)); \
+		COL_END=$$(($$COL_START + $(LAMBDAHAT_COLS_PER_WORKER) - 1)); \
 	fi; \
-	LOG_FILE=$(OUTPUT_DIR)/worker_$(RUN_ID)_$$WORKER_ID.log; \
-	echo "Worker $$WORKER_ID: Computing columns $$COL_START-$$COL_END (log: $$LOG_FILE)"; \
-	$(PYTHON) $(PARTIAL_SCRIPT) $$COL_START $$COL_END -o $@ > $$LOG_FILE 2>&1
+	LOG_FILE=$(OUTPUT_DIR)/lambdaHat_worker_$(RUN_ID)_$$WORKER_ID.log; \
+	echo "Worker $$WORKER_ID: Computing λ̂ columns $$COL_START-$$COL_END (log: $$LOG_FILE)"; \
+	$(PYTHON) $(LAMBDAHAT_PARTIAL_SCRIPT) $$COL_START $$COL_END -o $@ > $$LOG_FILE 2>&1
 
-# Clean generated files
-clean:
-	rm -rf $(OUTPUT_DIR)
-	rm -f $(FINAL_OUTPUT)
+#==============================================================================
+# D̂ (error form) computation targets
+#==============================================================================
+
+# Main target: compute D̂ using multiprocessing
+Dhat: $(DHAT_FINAL_OUTPUT)
+
+$(DHAT_FINAL_OUTPUT): $(DHAT_PARTIAL_FILES) $(DHAT_MERGE_SCRIPT)
+	@echo "========================================"
+	@echo "Merging partial D̂ results..."
+	@echo "========================================"
+	$(PYTHON) $(DHAT_MERGE_SCRIPT) $(DHAT_PARTIAL_FILES) -o $(DHAT_FINAL_OUTPUT) \
+		--dimension $(DHAT_MATRIX_DIM) -n $(N_QUBITS) -t $(MAX_WEIGHT)
+
+# Compute all partial D̂ files using multiprocessing script
+# Note: The script handles parallelization internally, so we don't use make -j here
+$(DHAT_PARTIAL_FILES): $(DHAT_PARALLEL_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing D̂ matrix with $(NUM_WORKERS) workers..."
+	@echo "========================================"
+	$(PYTHON) $(DHAT_PARALLEL_SCRIPT) -o $(OUTPUT_DIR) -w $(NUM_WORKERS) -n $(N_QUBITS) -t $(MAX_WEIGHT)
+
+#==============================================================================
+# Clean targets
+#==============================================================================
+
+# Clean lambdaHat files
+clean-lambdaHat:
+	rm -f $(OUTPUT_DIR)/lambdaHat_partial_*.txt
+	rm -f $(OUTPUT_DIR)/lambdaHat_worker_*.log
+	rm -f $(LAMBDAHAT_FINAL_OUTPUT)
+
+# Clean D̂ files
+clean-Dhat:
+	rm -f $(OUTPUT_DIR)/dhat_partial_*.txt
+	rm -f $(DHAT_FINAL_OUTPUT)
+
+# Clean all generated files
+clean: clean-lambdaHat clean-Dhat
+	rmdir $(OUTPUT_DIR) 2>/dev/null || true

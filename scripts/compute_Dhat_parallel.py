@@ -96,7 +96,7 @@ def compute_column_range(args):
                             accumulator[key] = val_simplified
 
     # Write results to file
-    output_file = Path(output_dir) / f"partial_{worker_id}.txt"
+    output_file = Path(output_dir) / f"dhat_partial_{worker_id}.txt"
 
     print(f"Worker {worker_id}: Writing {len(accumulator)} non-zero entries to {output_file}")
 
