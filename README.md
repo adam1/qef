@@ -46,3 +46,22 @@ and $`\dim \mathcal{E}_1 = |\mathcal{P_{9,1}}| = 28`$.
 
 The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.h5`.
 
+---
+
+
+Fix $`\mathcal{E} = \mathcal{E}_1`$. The next step is to compute the matrix $`\widehat{D} = \widehat{D}_{\mathcal{E}, \lambda}`$, the matrix corresponding to the total error form $`D_{\mathcal{E}, \lambda}`$ in the computational basis. We need some building blocks for this, intermediate expressions that will eventually be composed to compute the whole form.
+
+In this section, we denote by $B$ the standard inner product on $`\mathcal{H}_n`$. Let $`\{e_i\}`$ be the computational basis for $`\mathcal{H}_n`$. For any pair $`E, F \in \mathcal{P}_{9,1}`$, abbreviate $`\lambda = \lambda(E, F)`$, and define
+
+```math
+\begin{align*}
+D_{\lambda, E, F} &= \sum_k (
+    \left(\tfrac{1}{2} (E+F)^{*}B - \Re(\lambda) B \right)(x, e_k)
+    \cdot \left(\tfrac{1}{2} (E+F)^{*}B - \Re(\lambda) B \right)(e_k, y)\\
+& \quad \ \ \ + 
+    \left(\tfrac{1}{2} (E+F)^{*}B - \Im(\lambda)i B \right)(x, e_k)
+    \cdot \left(\tfrac{1}{2} (E+F)^{*}B - \Im(\lambda)i B \right)(e_k, y)
+).
+\end{align*}
+```
+
