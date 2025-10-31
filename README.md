@@ -47,6 +47,16 @@ and $`\dim \mathcal{E}_1 = |\mathcal{P_{9,1}}| = 28`$.
 
 The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.h5`.
 
+### Forms $B_{\lambda, E, F}$
+
+The notation $`(E, F)^*B`$ means the _mixed pullback_ of $B$ by $E$ and $F$, defined by $`(E, F)^*B(u, v) = B(Eu, Fv)`$. Define
+
+$$
+    B_{\lambda, E, F} = (E, F)^*B - \lambda(E, F) \cdot B.
+$$
+
+
+
 ### Error forms $D_{\lambda, E, F}$
 
 
