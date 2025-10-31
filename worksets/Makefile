@@ -12,6 +12,10 @@ LAMBDAHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_lambdaHat.py
 DHAT_PARALLEL_SCRIPT := $(SCRIPTS_DIR)/compute_Dhat_parallel.py
 DHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_Dhat.py
 
+# Scripts for rank and signature computation
+RANK_SCRIPT := $(SCRIPTS_DIR)/compute_rank.py
+SIGNATURE_NUMERICAL_SCRIPT := $(SCRIPTS_DIR)/compute_signature_numerical.py
+
 # Output files
 OUTPUT_DIR := output
 LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
@@ -42,18 +46,22 @@ LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$
 # Generate list of partial output files for D̂
 DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
 	@echo ""
 	@echo "Targets:"
-	@echo "  lambdaHat       - Compute the lambda-hat matrix λ̂ (make-based parallelization)"
-	@echo "  Dhat            - Compute the total error form matrix D̂ (multiprocessing)"
-	@echo "  clean-lambdaHat - Remove lambdaHat output files and logs"
-	@echo "  clean-Dhat      - Remove D̂ output files and logs"
-	@echo "  clean           - Remove all output files and logs"
-	@echo "  help            - Show this help message"
+	@echo "  lambdaHat            - Compute the lambda-hat matrix λ̂ (make-based parallelization)"
+	@echo "  Dhat                 - Compute the total error form matrix D̂ (multiprocessing)"
+	@echo "  rank-lambdaHat       - Compute the rank of λ̂ (symbolic)"
+	@echo "  rank-Dhat            - Compute the rank of D̂ (symbolic)"
+	@echo "  signature-lambdaHat  - Compute the signature of λ̂ (numerical, via eigenvalues)"
+	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
+	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
+	@echo "  clean-Dhat           - Remove D̂ output files and logs"
+	@echo "  clean                - Remove all output files and logs"
+	@echo "  help                 - Show this help message"
 	@echo ""
 	@echo "Configuration:"
 	@echo "  λ̂ matrix dimension: $(LAMBDAHAT_MATRIX_DIM) (P_{$(N_QUBITS),$(MAX_WEIGHT)} basis)"
@@ -133,6 +141,42 @@ $(DHAT_PARTIAL_FILES): $(DHAT_PARALLEL_SCRIPT) | $(OUTPUT_DIR)
 	$(PYTHON) $(DHAT_PARALLEL_SCRIPT) -o $(OUTPUT_DIR) -w $(NUM_WORKERS) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
+# Rank computation targets
+#==============================================================================
+
+# Compute rank of λ̂
+rank-lambdaHat: $(LAMBDAHAT_FINAL_OUTPUT)
+	@echo "========================================"
+	@echo "Computing rank of λ̂..."
+	@echo "========================================"
+	$(PYTHON) $(RANK_SCRIPT) $(LAMBDAHAT_FINAL_OUTPUT)
+
+# Compute rank of D̂
+rank-Dhat: $(DHAT_FINAL_OUTPUT)
+	@echo "========================================"
+	@echo "Computing rank of D̂..."
+	@echo "========================================"
+	$(PYTHON) $(RANK_SCRIPT) $(DHAT_FINAL_OUTPUT)
+
+# Compute signature of λ̂ (numerical)
+signature-lambdaHat: $(LAMBDAHAT_FINAL_OUTPUT)
+	@echo "========================================"
+	@echo "Computing signature of λ̂ (numerical)..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/signature_lambdaHat_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(SIGNATURE_NUMERICAL_SCRIPT) $(LAMBDAHAT_FINAL_OUTPUT) 2>&1 | tee $$LOG_FILE
+
+# Compute signature of D̂ (numerical)
+signature-Dhat: $(DHAT_FINAL_OUTPUT)
+	@echo "========================================"
+	@echo "Computing signature of D̂ (numerical)..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/signature_dhat_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(SIGNATURE_NUMERICAL_SCRIPT) $(DHAT_FINAL_OUTPUT) 2>&1 | tee $$LOG_FILE
+
+#==============================================================================
 # Clean targets
 #==============================================================================
 
@@ -140,12 +184,14 @@ $(DHAT_PARTIAL_FILES): $(DHAT_PARALLEL_SCRIPT) | $(OUTPUT_DIR)
 clean-lambdaHat:
 	rm -f $(OUTPUT_DIR)/lambdaHat_partial_*.txt
 	rm -f $(OUTPUT_DIR)/lambdaHat_worker_*.log
+	rm -f $(OUTPUT_DIR)/signature_lambdaHat_*.log
 	rm -f $(LAMBDAHAT_FINAL_OUTPUT)
 
 # Clean D̂ files
 clean-Dhat:
 	rm -f $(OUTPUT_DIR)/dhat_partial_*.txt
 	rm -f $(OUTPUT_DIR)/dhat_*.log
+	rm -f $(OUTPUT_DIR)/signature_dhat_*.log
 	rm -f $(DHAT_FINAL_OUTPUT)
 
 # Clean all generated files
