@@ -17,8 +17,7 @@ RANK_SCRIPT := $(SCRIPTS_DIR)/compute_rank.py
 SIGNATURE_NUMERICAL_SCRIPT := $(SCRIPTS_DIR)/compute_signature_numerical.py
 
 # Scripts for B̂_{λ,E,F} analysis
-BHAT_LAMBDA_EF_SCRIPT := $(SCRIPTS_DIR)/compute_Bhat_lambda_EF.py
-ALL_BHAT_SIGNATURES_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_signatures.py
+ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
 
 # Output files
 OUTPUT_DIR := output
@@ -50,7 +49,7 @@ LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$
 # Generate list of partial output files for D̂
 DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat Bhat-signatures help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat Bhat-on-M help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -62,7 +61,7 @@ help:
 	@echo "  rank-Dhat            - Compute the rank of D̂ (symbolic)"
 	@echo "  signature-lambdaHat  - Compute the signature of λ̂ (numerical, via eigenvalues)"
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
-	@echo "  Bhat-signatures      - Compute signatures of all B̂_{λ,E,F} matrices in P_{9,1}"
+	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
@@ -185,14 +184,14 @@ signature-Dhat: $(DHAT_FINAL_OUTPUT)
 # B̂_{λ,E,F} analysis targets
 #==============================================================================
 
-# Compute all B̂_{λ,E,F} signatures for pairs in P_{9,1}
-Bhat-signatures: $(BHAT_LAMBDA_EF_SCRIPT) $(SIGNATURE_NUMERICAL_SCRIPT) | $(OUTPUT_DIR)
+# Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}
+Bhat-on-M: $(ALL_BHAT_ON_M_SCRIPT) | $(OUTPUT_DIR)
 	@echo "========================================"
-	@echo "Computing B̂_{λ,E,F} signatures for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
+	@echo "Verifying B̂_{λ,E,F} = 0 on code space M for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
 	@echo "========================================"
-	@LOG_FILE=$(OUTPUT_DIR)/Bhat_signatures_$(RUN_ID).log; \
+	@LOG_FILE=$(OUTPUT_DIR)/Bhat_on_M_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
-	$(PYTHON) $(ALL_BHAT_SIGNATURES_SCRIPT) -o $(OUTPUT_DIR)/bhat_analysis -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+	$(PYTHON) $(ALL_BHAT_ON_M_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets
