@@ -25,6 +25,7 @@ from .lambda_hat import (
 )
 
 from .error_forms import (
+    compute_B_hat_lambda_EF,
     compute_D_lambda_EF,
 )
 
@@ -42,5 +43,6 @@ __all__ = [
     "create_shor_logical_zero",
     "create_shor_logical_one",
     "compute_lambda",
+    "compute_B_hat_lambda_EF",
     "compute_D_lambda_EF",
 ]
