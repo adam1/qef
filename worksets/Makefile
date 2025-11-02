@@ -18,6 +18,7 @@ SIGNATURE_NUMERICAL_SCRIPT := $(SCRIPTS_DIR)/compute_signature_numerical.py
 
 # Scripts for B̂_{λ,E,F} analysis
 ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
+ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
 
 # Output files
 OUTPUT_DIR := output
@@ -49,7 +50,7 @@ LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$
 # Generate list of partial output files for D̂
 DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat Bhat-on-M help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat Bhat-on-M Bhat-hermitian help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -62,6 +63,7 @@ help:
 	@echo "  signature-lambdaHat  - Compute the signature of λ̂ (numerical, via eigenvalues)"
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
+	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
@@ -192,6 +194,15 @@ Bhat-on-M: $(ALL_BHAT_ON_M_SCRIPT) | $(OUTPUT_DIR)
 	@LOG_FILE=$(OUTPUT_DIR)/Bhat_on_M_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(ALL_BHAT_ON_M_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+
+# Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}
+Bhat-hermitian: $(ALL_BHAT_HERMITIAN_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Checking Hermiticity of B̂_{λ,E,F} for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/Bhat_hermitian_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(ALL_BHAT_HERMITIAN_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets

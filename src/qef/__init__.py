@@ -29,6 +29,10 @@ from .error_forms import (
     compute_D_lambda_EF,
 )
 
+from .matrix_utils import (
+    is_hermitian,
+)
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -45,4 +49,5 @@ __all__ = [
     "compute_lambda",
     "compute_B_hat_lambda_EF",
     "compute_D_lambda_EF",
+    "is_hermitian",
 ]
