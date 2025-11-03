@@ -33,6 +33,12 @@ from .matrix_utils import (
     is_hermitian,
 )
 
+from .matrix_io import (
+    extract_dimension_from_file,
+    read_sparse_matrix_symbolic,
+    read_sparse_matrix_numerical,
+)
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -50,4 +56,7 @@ __all__ = [
     "compute_B_hat_lambda_EF",
     "compute_D_lambda_EF",
     "is_hermitian",
+    "extract_dimension_from_file",
+    "read_sparse_matrix_symbolic",
+    "read_sparse_matrix_numerical",
 ]

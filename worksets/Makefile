@@ -19,11 +19,14 @@ SIGNATURE_NUMERICAL_SCRIPT := $(SCRIPTS_DIR)/compute_signature_numerical.py
 # Scripts for B̂_{λ,E,F} analysis
 ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
 ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
+JHAT_SCRIPT := $(SCRIPTS_DIR)/compute_Jhat.py
+CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
 
 # Output files
 OUTPUT_DIR := output
 LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
 DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
+JHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Jhat.txt
 
 # Matrix parameters
 LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
@@ -50,7 +53,7 @@ LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$
 # Generate list of partial output files for D̂
 DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat Bhat-on-M Bhat-hermitian help
+.PHONY: all clean lambdaHat Dhat Jhat clean-lambdaHat clean-Dhat clean-Jhat rank-lambdaHat rank-Dhat rank-Jhat signature-lambdaHat signature-Dhat signature-Jhat check-Jhat-hermitian Bhat-on-M Bhat-hermitian help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -58,14 +61,19 @@ help:
 	@echo "Targets:"
 	@echo "  lambdaHat            - Compute the lambda-hat matrix λ̂ (make-based parallelization)"
 	@echo "  Dhat                 - Compute the total error form matrix D̂ (multiprocessing)"
+	@echo "  Jhat                 - Compute the sum matrix Ĵ = Σ_{E,F} B̂_{λ,E,F}"
 	@echo "  rank-lambdaHat       - Compute the rank of λ̂ (symbolic)"
 	@echo "  rank-Dhat            - Compute the rank of D̂ (symbolic)"
+	@echo "  rank-Jhat            - Compute the rank of Ĵ (symbolic)"
 	@echo "  signature-lambdaHat  - Compute the signature of λ̂ (numerical, via eigenvalues)"
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
+	@echo "  signature-Jhat       - Compute the signature of Ĵ (numerical, via eigenvalues)"
+	@echo "  check-Jhat-hermitian - Check if Ĵ is Hermitian (symbolic)"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
 	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
+	@echo "  clean-Jhat           - Remove Ĵ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
 	@echo "  help                 - Show this help message"
 	@echo ""
@@ -83,6 +91,7 @@ help:
 	@echo "Output files:"
 	@echo "  λ̂: $(LAMBDAHAT_FINAL_OUTPUT)"
 	@echo "  D̂: $(DHAT_FINAL_OUTPUT)"
+	@echo "  Ĵ: $(JHAT_FINAL_OUTPUT)"
 	@echo ""
 	@echo "Logs:"
 	@echo "  λ̂ workers: $(OUTPUT_DIR)/lambdaHat_worker_<timestamp>_<pid>_<worker_id>.log"
@@ -147,6 +156,21 @@ $(DHAT_PARTIAL_FILES): $(DHAT_PARALLEL_SCRIPT) | $(OUTPUT_DIR)
 	$(PYTHON) $(DHAT_PARALLEL_SCRIPT) -o $(OUTPUT_DIR) -w $(NUM_WORKERS) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
+# Ĵ (sum of B̂_{λ,E,F}) computation targets
+#==============================================================================
+
+# Main target: compute Ĵ = Σ_{E,F} B̂_{λ,E,F}
+Jhat: $(JHAT_FINAL_OUTPUT)
+
+$(JHAT_FINAL_OUTPUT): $(JHAT_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing Ĵ = Σ_{E,F} B̂_{λ,E,F}..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/Jhat_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(JHAT_SCRIPT) -o $(JHAT_FINAL_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+
+#==============================================================================
 # Rank computation targets
 #==============================================================================
 
@@ -163,6 +187,13 @@ rank-Dhat: $(DHAT_FINAL_OUTPUT)
 	@echo "Computing rank of D̂..."
 	@echo "========================================"
 	$(PYTHON) $(RANK_SCRIPT) $(DHAT_FINAL_OUTPUT)
+
+# Compute rank of Ĵ
+rank-Jhat: $(JHAT_FINAL_OUTPUT)
+	@echo "========================================"
+	@echo "Computing rank of Ĵ..."
+	@echo "========================================"
+	$(PYTHON) $(RANK_SCRIPT) $(JHAT_FINAL_OUTPUT)
 
 # Compute signature of λ̂ (numerical)
 signature-lambdaHat: $(LAMBDAHAT_FINAL_OUTPUT)
@@ -181,6 +212,22 @@ signature-Dhat: $(DHAT_FINAL_OUTPUT)
 	@LOG_FILE=$(OUTPUT_DIR)/signature_dhat_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(SIGNATURE_NUMERICAL_SCRIPT) $(DHAT_FINAL_OUTPUT) 2>&1 | tee $$LOG_FILE
+
+# Compute signature of Ĵ (numerical)
+signature-Jhat: $(JHAT_FINAL_OUTPUT)
+	@echo "========================================"
+	@echo "Computing signature of Ĵ (numerical)..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/signature_jhat_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(SIGNATURE_NUMERICAL_SCRIPT) $(JHAT_FINAL_OUTPUT) 2>&1 | tee $$LOG_FILE
+
+# Check if Ĵ is Hermitian (symbolic)
+check-Jhat-hermitian: $(JHAT_FINAL_OUTPUT) $(CHECK_HERMITIAN_SCRIPT)
+	@echo "========================================"
+	@echo "Checking if Ĵ is Hermitian (symbolic)..."
+	@echo "========================================"
+	$(PYTHON) $(CHECK_HERMITIAN_SCRIPT) $(JHAT_FINAL_OUTPUT)
 
 #==============================================================================
 # B̂_{λ,E,F} analysis targets
@@ -222,6 +269,12 @@ clean-Dhat:
 	rm -f $(OUTPUT_DIR)/signature_dhat_*.log
 	rm -f $(DHAT_FINAL_OUTPUT)
 
+# Clean Ĵ files
+clean-Jhat:
+	rm -f $(OUTPUT_DIR)/Jhat_*.log
+	rm -f $(OUTPUT_DIR)/signature_jhat_*.log
+	rm -f $(JHAT_FINAL_OUTPUT)
+
 # Clean all generated files
-clean: clean-lambdaHat clean-Dhat
+clean: clean-lambdaHat clean-Dhat clean-Jhat
 	rmdir $(OUTPUT_DIR) 2>/dev/null || true

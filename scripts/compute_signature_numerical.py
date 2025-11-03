@@ -18,98 +18,15 @@ Arguments:
 
 import argparse
 import sys
-import re
 from pathlib import Path
-from datetime import datetime
+
+# Add parent directory to path to import qef
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import numpy as np
 from scipy.linalg import eigh
-from sympy import sympify
 
-
-def timestamp():
-    """Return current timestamp as a string."""
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-def log(message):
-    """Print a message with a timestamp."""
-    print(f"[{timestamp()}] {message}", flush=True)
-
-
-def extract_dimension_from_file(filename):
-    """
-    Extract matrix dimension from comment header.
-
-    Looks for patterns like:
-    - # Dimension: 28
-    - # Matrix dimension: 512
-
-    Args:
-        filename: Path to matrix file
-
-    Returns:
-        Dimension (integer) or None if not found
-    """
-    with open(filename, 'r') as f:
-        for line in f:
-            if not line.startswith('#'):
-                # Past the header
-                break
-
-            # Look for "Dimension: N" or "Matrix dimension: N"
-            match = re.search(r'(?:Matrix\s+)?[Dd]imension:\s*(\d+)', line)
-            if match:
-                return int(match.group(1))
-
-    return None
-
-
-def read_sparse_matrix_numerical(filename, dimension):
-    """
-    Read a sparse matrix file and convert to numerical numpy array.
-
-    Args:
-        filename: Path to sparse matrix file
-        dimension: Dimension of the square matrix
-
-    Returns:
-        NumPy complex array
-    """
-    log(f"Reading sparse matrix from {filename}...")
-
-    # Initialize zero matrix
-    M = np.zeros((dimension, dimension), dtype=complex)
-
-    entry_count = 0
-    with open(filename, 'r') as f:
-        for line in f:
-            # Skip comments and empty lines
-            if line.startswith('#') or not line.strip():
-                continue
-
-            # Parse: row col srepr_value
-            parts = line.split(None, 2)
-            if len(parts) != 3:
-                continue
-
-            row = int(parts[0])
-            col = int(parts[1])
-
-            # Convert symbolic expression to complex number
-            value_symbolic = sympify(parts[2])
-            value_numerical = complex(value_symbolic.evalf())
-
-            M[row, col] = value_numerical
-            entry_count += 1
-
-            if entry_count % 10000 == 0:
-                log(f"  Read {entry_count} entries...")
-
-    log(f"Read {entry_count} non-zero entries")
-    log(f"Converted to {dimension}×{dimension} complex array")
-
-    return M
+from qef.matrix_io import extract_dimension_from_file, read_sparse_matrix_numerical, log
 
 
 def compute_signature_eigenvalues(M, tolerance=1e-10):
