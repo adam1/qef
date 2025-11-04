@@ -22,6 +22,7 @@ ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
 JHAT_SCRIPT := $(SCRIPTS_DIR)/compute_Jhat.py
 CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
 EVAL_JHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Jhat_quadratic_form.py
+EVAL_JHAT_0L_PARTITIONS_SCRIPT := $(SCRIPTS_DIR)/evaluate_Jhat_on_0L_partitions.py
 
 # Output files
 OUTPUT_DIR := output
@@ -54,7 +55,7 @@ LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$
 # Generate list of partial output files for D̂
 DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat Dhat Jhat clean-lambdaHat clean-Dhat clean-Jhat rank-lambdaHat rank-Dhat rank-Jhat signature-lambdaHat signature-Dhat signature-Jhat check-Jhat-hermitian eval-Jhat-quadratic Bhat-on-M Bhat-hermitian help
+.PHONY: all clean lambdaHat Dhat Jhat clean-lambdaHat clean-Dhat clean-Jhat rank-lambdaHat rank-Dhat rank-Jhat signature-lambdaHat signature-Dhat signature-Jhat check-Jhat-hermitian eval-Jhat-quadratic eval-Jhat-0L-partitions Bhat-on-M Bhat-hermitian help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -71,6 +72,7 @@ help:
 	@echo "  signature-Jhat       - Compute the signature of Ĵ (numerical, via eigenvalues)"
 	@echo "  check-Jhat-hermitian - Check if Ĵ is Hermitian (symbolic)"
 	@echo "  eval-Jhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|Ĵ|v⟩ on |0_L⟩ and |1_L⟩"
+	@echo "  eval-Jhat-0L-partitions - Evaluate Q on all 127 partitions of |0_L⟩ = |a⟩ + |b⟩"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
 	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
@@ -237,6 +239,15 @@ eval-Jhat-quadratic: $(JHAT_FINAL_OUTPUT) $(EVAL_JHAT_QUADRATIC_SCRIPT)
 	@echo "Evaluating quadratic form Q(v) = ⟨v|Ĵ|v⟩ on |0_L⟩ and |1_L⟩..."
 	@echo "========================================"
 	$(PYTHON) $(EVAL_JHAT_QUADRATIC_SCRIPT) -i $(JHAT_FINAL_OUTPUT)
+
+# Evaluate Q on all partitions of |0_L⟩
+eval-Jhat-0L-partitions: $(JHAT_FINAL_OUTPUT) $(EVAL_JHAT_0L_PARTITIONS_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Evaluating Q on all 127 partitions of |0_L⟩..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/Jhat_0L_partitions_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(EVAL_JHAT_0L_PARTITIONS_SCRIPT) -i $(JHAT_FINAL_OUTPUT) -o $(OUTPUT_DIR) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # B̂_{λ,E,F} analysis targets
