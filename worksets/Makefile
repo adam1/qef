@@ -21,6 +21,7 @@ ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
 ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
 JHAT_SCRIPT := $(SCRIPTS_DIR)/compute_Jhat.py
 CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
+EVAL_JHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Jhat_quadratic_form.py
 
 # Output files
 OUTPUT_DIR := output
@@ -53,7 +54,7 @@ LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$
 # Generate list of partial output files for D̂
 DHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/dhat_partial_$(i).txt)
 
-.PHONY: all clean lambdaHat Dhat Jhat clean-lambdaHat clean-Dhat clean-Jhat rank-lambdaHat rank-Dhat rank-Jhat signature-lambdaHat signature-Dhat signature-Jhat check-Jhat-hermitian Bhat-on-M Bhat-hermitian help
+.PHONY: all clean lambdaHat Dhat Jhat clean-lambdaHat clean-Dhat clean-Jhat rank-lambdaHat rank-Dhat rank-Jhat signature-lambdaHat signature-Dhat signature-Jhat check-Jhat-hermitian eval-Jhat-quadratic Bhat-on-M Bhat-hermitian help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -69,6 +70,7 @@ help:
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
 	@echo "  signature-Jhat       - Compute the signature of Ĵ (numerical, via eigenvalues)"
 	@echo "  check-Jhat-hermitian - Check if Ĵ is Hermitian (symbolic)"
+	@echo "  eval-Jhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|Ĵ|v⟩ on |0_L⟩ and |1_L⟩"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
 	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
@@ -228,6 +230,13 @@ check-Jhat-hermitian: $(JHAT_FINAL_OUTPUT) $(CHECK_HERMITIAN_SCRIPT)
 	@echo "Checking if Ĵ is Hermitian (symbolic)..."
 	@echo "========================================"
 	$(PYTHON) $(CHECK_HERMITIAN_SCRIPT) $(JHAT_FINAL_OUTPUT)
+
+# Evaluate quadratic form Q(v) = ⟨v|Ĵ|v⟩ on code space basis
+eval-Jhat-quadratic: $(JHAT_FINAL_OUTPUT) $(EVAL_JHAT_QUADRATIC_SCRIPT)
+	@echo "========================================"
+	@echo "Evaluating quadratic form Q(v) = ⟨v|Ĵ|v⟩ on |0_L⟩ and |1_L⟩..."
+	@echo "========================================"
+	$(PYTHON) $(EVAL_JHAT_QUADRATIC_SCRIPT) -i $(JHAT_FINAL_OUTPUT)
 
 #==============================================================================
 # B̂_{λ,E,F} analysis targets
