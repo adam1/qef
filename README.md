@@ -45,7 +45,7 @@ $$
 
 and $`\dim \mathcal{E}_1 = |\mathcal{P_{9,1}}| = 28`$.
 
-The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.h5`.
+The first task is to compute the matrix $\widehat{\lambda}$ for Hermitian form $\lambda$ induced by $M_\text{Shor}$, in the $\mathcal{P}_{9,1}$ basis.  This is initiated by the command `make lambdaHat` which eventually writes file `lambdaHat.txt`.
 
 ```
 mkdir worksets/000-demo
