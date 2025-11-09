@@ -103,7 +103,27 @@ Abbreviating $D := D_{\mathcal{E}, \lambda}$, we compute the matrix $\widehat{D}
 ```
 cd worksets/000-demo
 make -f ../Makefile Dhat
+...
+[2025-11-08 23:55:43] Writing D̂ to output/Dhat.txt...
+[2025-11-08 23:55:43] (Using sparse format: only non-zero entries)
+[2025-11-08 23:55:43]
+[2025-11-08 23:55:44] Matrix written successfully!
+[2025-11-08 23:55:44] Non-zero entries: 23552 / 262144
+[2025-11-08 23:55:44] Sparsity: 91.02%
+...
 
-make -f ../Makefile rank-Dhat
+make -f ../Makefile signature-Dhat
+========================================
+Computing signature of D̂ (numerical)...
+========================================
+...
+[2025-11-09 06:37:46] ======================================================================
+[2025-11-09 06:37:46] RESULTS:
+[2025-11-09 06:37:46]   Signature: (92, 420, 0)
+[2025-11-09 06:37:46]   p = 92 (positive eigenvalues)
+[2025-11-09 06:37:46]   q = 420 (negative eigenvalues)
+[2025-11-09 06:37:46]   r = 0 (zero eigenvalues / nullity)
+[2025-11-09 06:37:46]   Rank = p + q = 512
+[2025-11-09 06:37:46] ======================================================================
 ```
 
