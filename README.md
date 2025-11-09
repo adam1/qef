@@ -67,6 +67,27 @@ $$
     B_{\lambda, E, F} = (E, F)^*B - \lambda(E, F) \cdot B.
 $$
 
+```
+cd worksets/000-demo
+make -f ../Makefile Bhat-on-M
+...
+2025-10-31 23:53:54] ======================================================================
+[2025-10-31 23:53:54] All pairs processed!
+[2025-10-31 23:53:54]
+[2025-10-31 23:53:54] Total pairs checked: 784
+[2025-10-31 23:53:54] Violations found: 0
+...
+make -f ../Makefile Bhat-hermitian
+...
+[2025-11-02 00:12:49] ======================================================================
+[2025-11-02 00:12:49] All pairs processed!
+[2025-11-02 00:12:49]
+[2025-11-02 00:12:49] Total pairs checked: 784
+[2025-11-02 00:12:49] Hermitian matrices: 730
+[2025-11-02 00:12:49] Non-Hermitian matrices: 54
+...
+```
+
 
 
 ### Error forms $D_{\lambda, E, F}$
