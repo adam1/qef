@@ -26,7 +26,6 @@ from .lambda_hat import (
 
 from .error_forms import (
     compute_B_hat_lambda_EF,
-    compute_D_lambda_EF,
 )
 
 from .matrix_utils import (
@@ -54,7 +53,6 @@ __all__ = [
     "create_shor_logical_one",
     "compute_lambda",
     "compute_B_hat_lambda_EF",
-    "compute_D_lambda_EF",
     "is_hermitian",
     "extract_dimension_from_file",
     "read_sparse_matrix_symbolic",
