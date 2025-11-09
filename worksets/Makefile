@@ -4,8 +4,8 @@
 PYTHON := python3.11
 SCRIPTS_DIR := ../../scripts
 
-# Scripts for lambdaHat computation (make-based parallelization)
-LAMBDAHAT_PARTIAL_SCRIPT := $(SCRIPTS_DIR)/compute_lambdaHat_partial.py
+# Scripts for lambdaHat computation (multiprocessing-based parallelization)
+LAMBDAHAT_PARALLEL_SCRIPT := $(SCRIPTS_DIR)/compute_lambdaHat_parallel.py
 LAMBDAHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_lambdaHat.py
 
 # Scripts for D̂ computation (multiprocessing-based parallelization)
@@ -40,15 +40,6 @@ MAX_WEIGHT := 1             # Maximum weight t for P_{n,t} basis
 # Run identification (timestamp and PID for this make invocation)
 RUN_ID := $(shell date '+%s')_$$$$
 
-# Compute column ranges for each worker (for lambdaHat)
-# We divide 28 columns (0-27) into NUM_WORKERS chunks
-# Worker 0: columns 0-6   (7 columns)
-# Worker 1: columns 7-13  (7 columns)
-# Worker 2: columns 14-20 (7 columns)
-# Worker 3: columns 21-27 (7 columns)
-
-LAMBDAHAT_COLS_PER_WORKER := $(shell echo $$(($(LAMBDAHAT_MATRIX_DIM) / $(NUM_WORKERS))))
-
 # Generate list of partial output files for lambdaHat
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
@@ -61,7 +52,7 @@ help:
 	@echo "Makefile for computing quantum error correction matrices"
 	@echo ""
 	@echo "Targets:"
-	@echo "  lambdaHat            - Compute the lambda-hat matrix λ̂ (make-based parallelization)"
+	@echo "  lambdaHat            - Compute the lambda-hat matrix λ̂ (multiprocessing)"
 	@echo "  Dhat                 - Compute the total error form matrix D̂ (multiprocessing)"
 	@echo "  Jhat                 - Compute the sum matrix Ĵ = Σ_{E,F} B̂_{λ,E,F}"
 	@echo "  rank-lambdaHat       - Compute the rank of λ̂ (symbolic)"
@@ -88,8 +79,7 @@ help:
 	@echo "  Output directory: $(OUTPUT_DIR)"
 	@echo ""
 	@echo "Usage:"
-	@echo "  make lambdaHat          - Sequential λ̂ computation"
-	@echo "  make -j4 lambdaHat      - Parallel λ̂ with 4 workers"
+	@echo "  make lambdaHat          - Compute λ̂ with $(NUM_WORKERS) workers"
 	@echo "  make Dhat               - Compute D̂ with $(NUM_WORKERS) workers"
 	@echo ""
 	@echo "Output files:"
@@ -98,7 +88,7 @@ help:
 	@echo "  Ĵ: $(JHAT_FINAL_OUTPUT)"
 	@echo ""
 	@echo "Logs:"
-	@echo "  λ̂ workers: $(OUTPUT_DIR)/lambdaHat_worker_<timestamp>_<pid>_<worker_id>.log"
+	@echo "  λ̂ computation: $(OUTPUT_DIR)/lambdaHat_<timestamp>_<pid>.log"
 	@echo "  D̂ computation: $(OUTPUT_DIR)/dhat_<timestamp>_<pid>.log"
 
 all: lambdaHat
@@ -121,19 +111,15 @@ $(LAMBDAHAT_FINAL_OUTPUT): $(LAMBDAHAT_PARTIAL_FILES) $(LAMBDAHAT_MERGE_SCRIPT)
 	@echo "========================================"
 	$(PYTHON) $(LAMBDAHAT_MERGE_SCRIPT) $(LAMBDAHAT_PARTIAL_FILES) -o $(LAMBDAHAT_FINAL_OUTPUT) --dimension $(LAMBDAHAT_MATRIX_DIM)
 
-# Pattern rule for computing partial lambdaHat files
-# This uses shell arithmetic to compute column ranges
-$(OUTPUT_DIR)/lambdaHat_partial_%.txt: $(LAMBDAHAT_PARTIAL_SCRIPT) | $(OUTPUT_DIR)
-	@WORKER_ID=$*; \
-	COL_START=$$(($$WORKER_ID * $(LAMBDAHAT_COLS_PER_WORKER))); \
-	if [ $$WORKER_ID -eq $$(($(NUM_WORKERS) - 1)) ]; then \
-		COL_END=$$(($(LAMBDAHAT_MATRIX_DIM) - 1)); \
-	else \
-		COL_END=$$(($$COL_START + $(LAMBDAHAT_COLS_PER_WORKER) - 1)); \
-	fi; \
-	LOG_FILE=$(OUTPUT_DIR)/lambdaHat_worker_$(RUN_ID)_$$WORKER_ID.log; \
-	echo "Worker $$WORKER_ID: Computing λ̂ columns $$COL_START-$$COL_END (log: $$LOG_FILE)"; \
-	$(PYTHON) $(LAMBDAHAT_PARTIAL_SCRIPT) $$COL_START $$COL_END -o $@ > $$LOG_FILE 2>&1
+# Compute all partial lambdaHat files using multiprocessing script
+# Note: The script handles parallelization internally, so we don't use make -j here
+$(LAMBDAHAT_PARTIAL_FILES): $(LAMBDAHAT_PARALLEL_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing λ̂ matrix with $(NUM_WORKERS) workers..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/lambdaHat_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(LAMBDAHAT_PARALLEL_SCRIPT) -o $(OUTPUT_DIR) -w $(NUM_WORKERS) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # D̂ (error form) computation targets
@@ -278,7 +264,7 @@ Bhat-hermitian: $(ALL_BHAT_HERMITIAN_SCRIPT) | $(OUTPUT_DIR)
 # Clean lambdaHat files
 clean-lambdaHat:
 	rm -f $(OUTPUT_DIR)/lambdaHat_partial_*.txt
-	rm -f $(OUTPUT_DIR)/lambdaHat_worker_*.log
+	rm -f $(OUTPUT_DIR)/lambdaHat_*.log
 	rm -f $(OUTPUT_DIR)/signature_lambdaHat_*.log
 	rm -f $(LAMBDAHAT_FINAL_OUTPUT)
 
