@@ -20,7 +20,6 @@ ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
 ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
 CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
 EVAL_DHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Jhat_quadratic_form.py
-EVAL_DHAT_0L_PARTITIONS_SCRIPT := $(SCRIPTS_DIR)/evaluate_Jhat_on_0L_partitions.py
 
 # Output files
 OUTPUT_DIR := output
@@ -39,7 +38,7 @@ RUN_ID := $(shell date '+%s')_$$$$
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic eval-Dhat-0L-partitions Bhat-on-M Bhat-hermitian help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -53,7 +52,6 @@ help:
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
 	@echo "  check-Dhat-hermitian - Check if D̂ is Hermitian (symbolic)"
 	@echo "  eval-Dhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|D̂|v⟩ on |0_L⟩ and |1_L⟩"
-	@echo "  eval-Dhat-0L-partitions - Evaluate Q on all 127 partitions of |0_L⟩ = |a⟩ + |b⟩"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
 	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
@@ -174,15 +172,6 @@ eval-Dhat-quadratic: $(DHAT_FINAL_OUTPUT) $(EVAL_DHAT_QUADRATIC_SCRIPT)
 	@echo "========================================"
 	$(PYTHON) $(EVAL_DHAT_QUADRATIC_SCRIPT) -i $(DHAT_FINAL_OUTPUT)
 
-# Evaluate Q on all partitions of |0_L⟩
-eval-Dhat-0L-partitions: $(DHAT_FINAL_OUTPUT) $(EVAL_DHAT_0L_PARTITIONS_SCRIPT) | $(OUTPUT_DIR)
-	@echo "========================================"
-	@echo "Evaluating Q on all 127 partitions of |0_L⟩..."
-	@echo "========================================"
-	@LOG_FILE=$(OUTPUT_DIR)/Dhat_0L_partitions_$(RUN_ID).log; \
-	echo "Log file: $$LOG_FILE"; \
-	$(PYTHON) $(EVAL_DHAT_0L_PARTITIONS_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(OUTPUT_DIR) 2>&1 | tee $$LOG_FILE
-
 #==============================================================================
 # B̂_{λ,E,F} analysis targets
 #==============================================================================
@@ -220,8 +209,6 @@ clean-lambdaHat:
 clean-Dhat:
 	rm -f $(OUTPUT_DIR)/Dhat_*.log
 	rm -f $(OUTPUT_DIR)/signature_dhat_*.log
-	rm -f $(OUTPUT_DIR)/Dhat_0L_partitions_*.log
-	rm -f $(OUTPUT_DIR)/Dhat_0L_partitions_*.txt
 	rm -f $(DHAT_FINAL_OUTPUT)
 
 # Clean all generated files
