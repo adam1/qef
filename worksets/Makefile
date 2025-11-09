@@ -24,6 +24,7 @@ EVAL_DHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Dhat_quadratic_form.py
 # Output files
 OUTPUT_DIR := output
 LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
+DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
 
 # Matrix parameters
 LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
