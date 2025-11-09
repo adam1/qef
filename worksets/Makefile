@@ -4,11 +4,11 @@
 PYTHON := python3.11
 SCRIPTS_DIR := ../../scripts
 
-# Scripts for lambdaHat computation (multiprocessing-based parallelization)
+# Scripts for lambdaHat computation
 LAMBDAHAT_PARALLEL_SCRIPT := $(SCRIPTS_DIR)/compute_lambdaHat_parallel.py
 LAMBDAHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_lambdaHat.py
 
-# Scripts for D̂ computation (multiprocessing-based parallelization)
+# Scripts for D̂ computation
 DHAT_PARALLEL_SCRIPT := $(SCRIPTS_DIR)/compute_Dhat_parallel.py
 DHAT_MERGE_SCRIPT := $(SCRIPTS_DIR)/merge_Dhat.py
 
