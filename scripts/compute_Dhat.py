@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """
-Compute Ĵ = Σ_{E,F} B̂_{λ,E,F} for all (E,F) pairs in P_{9,1}.
+Compute D̂ = Σ_{E,F} B̂_{λ,E,F} for all (E,F) pairs in P_{9,1}.
 
 This script computes the sum of all B̂_{λ,E,F} matrices over the basis P_{n,t}:
-    Ĵ = Σ_{E,F ∈ P_{n,t}} B̂_{λ,E,F}
+    D̂ = Σ_{E,F ∈ P_{n,t}} B̂_{λ,E,F}
 
 where B̂_{λ,E,F} = E†F - λ(E,F)·I.
 
 The result is a symbolic matrix written to disk in sparse format.
 
 Usage:
-    python compute_Jhat.py -o output_file [options]
+    python compute_Dhat.py -o output_file [options]
 
 Arguments:
-    -o, --output: Output file for Ĵ matrix
+    -o, --output: Output file for D̂ matrix
     -n, --n_qubits: Number of qubits (default: 9)
     -t, --max_weight: Maximum weight t for P_{n,t} basis (default: 1)
 """
@@ -50,12 +50,12 @@ def run_id():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Compute Ĵ = Σ_{E,F} B̂_{λ,E,F} for all pairs in P_{n,t}"
+        description="Compute D̂ = Σ_{E,F} B̂_{λ,E,F} for all pairs in P_{n,t}"
     )
     parser.add_argument(
         '-o', '--output',
         required=True,
-        help='Output file for Ĵ matrix'
+        help='Output file for D̂ matrix'
     )
     parser.add_argument(
         '-n', '--n_qubits',
@@ -77,7 +77,7 @@ def main():
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     log("=" * 70)
-    log(f"Computing Ĵ = Σ_{{E,F}} B̂_{{λ,E,F}}")
+    log(f"Computing D̂ = Σ_{{E,F}} B̂_{{λ,E,F}}")
     log(f"Basis: P_{{{args.n_qubits},{args.max_weight}}}")
     log(f"Output file: {output_file}")
     log("=" * 70)
@@ -99,10 +99,10 @@ def main():
     total_pairs = basis_size * basis_size
     pair_count = 0
 
-    # Initialize Ĵ as zero matrix
+    # Initialize D̂ as zero matrix
     dim = 2 ** args.n_qubits
-    log(f"Initializing Ĵ as {dim}×{dim} zero matrix...")
-    J_hat = Matrix.zeros(dim, dim)
+    log(f"Initializing D̂ as {dim}×{dim} zero matrix...")
+    D_hat = Matrix.zeros(dim, dim)
     log("")
 
     log("Computing sum over all (E,F) pairs...")
@@ -121,7 +121,7 @@ def main():
 
             # Compute B̂_{λ,E,F} and add to sum
             B_hat = compute_B_hat_lambda_EF(E_idx, F_idx, args.n_qubits, ket_0L)
-            J_hat += B_hat
+            D_hat += B_hat
 
     log("")
     log(f"All {total_pairs} pairs processed!")
@@ -136,21 +136,21 @@ def main():
         if i % 50 == 0:
             log(f"Simplifying row {i}/{dim}...")
         for j in range(dim):
-            J_hat[i, j] = simplify(J_hat[i, j])
+            D_hat[i, j] = simplify(D_hat[i, j])
 
     log("")
     log("Simplification complete!")
     log("")
 
     # Write to file in sparse format (only non-zero entries)
-    log(f"Writing Ĵ to {output_file}...")
+    log(f"Writing D̂ to {output_file}...")
     log("(Using sparse format: only non-zero entries)")
     log("")
 
     nonzero_count = 0
     with open(output_file, 'w') as f:
         # Header
-        f.write(f"# Ĵ = Σ_{{E,F}} B̂_{{λ,E,F}}\n")
+        f.write(f"# D̂ = Σ_{{E,F}} B̂_{{λ,E,F}}\n")
         f.write(f"# Basis: P_{{{args.n_qubits},{args.max_weight}}}\n")
         f.write(f"# Matrix dimension: {dim}×{dim}\n")
         f.write(f"# Total (E,F) pairs summed: {total_pairs}\n")
@@ -161,8 +161,8 @@ def main():
         # Write non-zero entries
         for i in range(dim):
             for j in range(dim):
-                if J_hat[i, j] != 0:
-                    f.write(f"{i} {j} {J_hat[i, j]}\n")
+                if D_hat[i, j] != 0:
+                    f.write(f"{i} {j} {D_hat[i, j]}\n")
                     nonzero_count += 1
 
     log(f"Matrix written successfully!")
