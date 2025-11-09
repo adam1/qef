@@ -59,7 +59,7 @@ make -f ../Makefile rank-lambdaHat
 [2025-11-08 21:20:52] ======================================================================
 ```
 
-### Forms $B_{\lambda, E, F}$
+### Error forms $B_{\lambda, E, F}$
 
 The notation $`(E, F)^*B`$ means the _mixed pullback_ of $B$ by $E$ and $F$, defined by $`(E, F)^*B(u, v) = B(Eu, Fv)`$. Define
 
@@ -90,37 +90,20 @@ make -f ../Makefile Bhat-hermitian
 
 
 
-### Error forms $D_{\lambda, E, F}$
-
-
-Fix $`\mathcal{E} = \mathcal{E}_1`$. The next step is to compute the matrix $`\widehat{D} = \widehat{D}_{\mathcal{E}, \lambda}`$, the matrix corresponding to the total error form $`D_{\mathcal{E}, \lambda}`$ in the computational basis. We need some building blocks for this, intermediate expressions that will eventually be composed to compute the whole form.
-
-In this section, we denote by $B$ the standard inner product on $`\mathcal{H}_n`$. Let $`\{e_i\}`$ be the computational basis for $`\mathcal{H}_n`$. For any pair $`E, F \in \mathcal{P}_{9,1}`$, abbreviate $`\lambda = \lambda(E, F)`$, and define
-
-```math
-\begin{align*}
-D_{\lambda, E, F} &= \sum_k (
-    \left(\tfrac{1}{2} (E+F)^{*}B - \Re(\lambda) B \right)(x, e_k)
-    \cdot \left(\tfrac{1}{2} (E+F)^{*}B - \Re(\lambda) B \right)(e_k, y)\\
-& \quad \ \ \ + 
-    \left(\tfrac{1}{2} (E+F)^{*}B - \Im(\lambda)i B \right)(x, e_k)
-    \cdot \left(\tfrac{1}{2} (E+F)^{*}B - \Im(\lambda)i B \right)(e_k, y)
-).
-\end{align*}
-```
-Here, $G^*B$ denotes the pullback form defined by
-
-```math
-G^*B(x, y) = B(Gx, Gy).
-```
-
 ### Total error form $D_{\lambda, \mathcal{E}}$
 
-The _total error form_ $D_{\lambda, \mathcal{E}}$ is 
+The _total error form_ $D_{\mathcal{E}, \lambda}$ is 
 
 ```math
-D_{\lambda, \mathcal{E}} = \sum_{E, F \in \mathcal{P}_{9,1}} D_{\lambda, E, F}.
+D_{\mathcal{E}, \lambda} = \sum_{E, F \in \mathcal{P}_{9,1}} B_{\lambda, E, F}.
 ```
 
-Abbreviating $D := D_{\lambda, \mathcal{E}}$, we compute the matrix $\widehat{D}$ corresponding to $D$ with respect to the computational basis of $\mathcal{H}_n$.
+Abbreviating $D := D_{\mathcal{E}, \lambda}$, we compute the matrix $\widehat{D}$ corresponding to $D$ with respect to the computational basis of $\mathcal{H}_n$.
+
+```
+cd worksets/000-demo
+make -f ../Makefile Dhat
+
+make -f ../Makefile rank-Dhat
+```
 
