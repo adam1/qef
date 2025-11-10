@@ -43,7 +43,7 @@ RUN_ID := $(shell date '+%s')_$$$$
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian isotropic-extension help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian isotropic-extension isotropic-extension-numerical help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -57,9 +57,10 @@ help:
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
 	@echo "  check-Dhat-hermitian - Check if D̂ is Hermitian (symbolic)"
 	@echo "  eval-Dhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|D̂|v⟩ on |0_L⟩ and |1_L⟩"
-	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
-	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
-	@echo "  isotropic-extension  - Compute isotropic extension M' = M ⊕ span(u+v) using Grove's algorithm"
+	@echo "  Bhat-on-M                  - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
+	@echo "  Bhat-hermitian             - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
+	@echo "  isotropic-extension        - Compute isotropic extension (symbolic, slow but exact)"
+	@echo "  isotropic-extension-numerical - Compute isotropic extension (numerical, fast)"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
@@ -204,16 +205,25 @@ Bhat-hermitian: $(ALL_BHAT_HERMITIAN_SCRIPT) | $(OUTPUT_DIR)
 # Isotropic extension targets
 #==============================================================================
 
-# Compute isotropic extension M' = M ⊕ span(u+v)
+# Compute isotropic extension M' = M ⊕ span(u+v) (symbolic mode)
 isotropic-extension: $(EXTENSION_VECTOR_OUTPUT)
 
 $(EXTENSION_VECTOR_OUTPUT): $(DHAT_FINAL_OUTPUT) $(ISOTROPIC_EXTENSION_SCRIPT) | $(OUTPUT_DIR)
 	@echo "========================================"
-	@echo "Computing isotropic extension using Grove's algorithm..."
+	@echo "Computing isotropic extension using Grove's algorithm (symbolic)..."
 	@echo "========================================"
 	@LOG_FILE=$(OUTPUT_DIR)/isotropic_extension_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(ISOTROPIC_EXTENSION_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(EXTENSION_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+
+# Compute isotropic extension M' = M ⊕ span(u+v) (numerical mode - fast)
+isotropic-extension-numerical: $(DHAT_FINAL_OUTPUT) $(ISOTROPIC_EXTENSION_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing isotropic extension using Grove's algorithm (numerical)..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/isotropic_extension_numerical_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(ISOTROPIC_EXTENSION_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(EXTENSION_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) --numerical 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets

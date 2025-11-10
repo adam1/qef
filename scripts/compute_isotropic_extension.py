@@ -34,6 +34,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from sympy import simplify, Add
+import numpy as np
 from qef.matrix_io import read_sparse_matrix_symbolic, log
 from qef.states import create_shor_logical_zero, create_shor_logical_one
 from qef.operators import get_basis_P_n_t, index_to_pauli_string
@@ -47,6 +48,45 @@ from qef.isotropic_extension import (
 def timestamp():
     """Return current timestamp as a string."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def sympy_to_numpy(matrix):
+    """Convert SymPy Matrix to NumPy array with complex float values."""
+    return np.array(matrix.tolist(), dtype=complex)
+
+
+def check_isotropy_numerical(vector_np, E_idx, F_idx, n_qubits, ket_v, tol=1e-10):
+    """
+    Check if a vector is isotropic with respect to B̂_{λ,E,F} numerically.
+
+    Args:
+        vector_np: NumPy array (1D or 2D column vector)
+        E_idx: Index for error operator E
+        F_idx: Index for error operator F
+        n_qubits: Number of qubits
+        ket_v: Reference state for λ computation
+        tol: Numerical tolerance for zero check
+
+    Returns:
+        True if |vector†B̂vector| < tol
+    """
+    from qef.error_forms import compute_B_hat_lambda_EF
+
+    # Compute B̂_{λ,E,F} symbolically
+    B_hat = compute_B_hat_lambda_EF(E_idx, F_idx, n_qubits, ket_v)
+
+    # Convert to numerical
+    B_hat_np = sympy_to_numpy(B_hat)
+
+    # Ensure vector is 2D column
+    if vector_np.ndim == 1:
+        vector_np = vector_np.reshape(-1, 1)
+
+    # Compute quadratic form: vector†B̂vector
+    result = np.conj(vector_np.T) @ B_hat_np @ vector_np
+    result_scalar = result[0, 0]
+
+    return np.abs(result_scalar) < tol
 
 
 def main():
@@ -80,6 +120,11 @@ def main():
         action='store_true',
         help='Use |1_L⟩ instead of |0_L⟩ as starting vector'
     )
+    parser.add_argument(
+        '--numerical',
+        action='store_true',
+        help='Perform checks numerically instead of symbolically (faster)'
+    )
 
     args = parser.parse_args()
 
@@ -101,6 +146,7 @@ def main():
     log(f"Input D̂ matrix: {input_file}")
     log(f"Output file: {output_file}")
     log(f"Basis: P_{{{args.n_qubits},{args.max_weight}}}")
+    log(f"Numerical mode: {args.numerical}")
     log("")
 
     # Read D̂ matrix
@@ -158,23 +204,52 @@ def main():
     # Verify hyperbolic pair properties
     log("Verifying hyperbolic pair properties...")
 
-    log("  Computing D̂(u,v)...")
-    D_uv = (u.H * D_hat * v)[0, 0]
-    D_uv_simplified = simplify(D_uv)
-    log(f"    D̂(u,v) = {D_uv_simplified}")
+    if args.numerical:
+        # Numerical verification
+        log("  Converting to numerical arrays...")
+        D_hat_np = sympy_to_numpy(D_hat)
+        u_np = sympy_to_numpy(u)
+        v_np = sympy_to_numpy(v)
 
-    if D_uv_simplified != 1:
-        log(f"    WARNING: Expected D̂(u,v) = 1, got {D_uv_simplified}")
+        log("  Computing D̂(u,v) numerically...")
+        D_uv_np = np.conj(u_np.T) @ D_hat_np @ v_np
+        D_uv_val = D_uv_np[0, 0]
+        log(f"    D̂(u,v) = {D_uv_val}")
+        log(f"    |D̂(u,v) - 1| = {np.abs(D_uv_val - 1):.2e}")
 
-    log("  Computing D̂(v,v)...")
-    D_vv = (v.H * D_hat * v)[0, 0]
-    D_vv_simplified = simplify(D_vv)
-    log(f"    D̂(v,v) = {D_vv_simplified}")
+        if np.abs(D_uv_val - 1) > 1e-10:
+            log(f"    WARNING: Expected D̂(u,v) = 1")
 
-    if D_vv_simplified != 0:
-        log(f"    WARNING: Expected D̂(v,v) = 0, got {D_vv_simplified}")
+        log("  Computing D̂(v,v) numerically...")
+        D_vv_np = np.conj(v_np.T) @ D_hat_np @ v_np
+        D_vv_val = D_vv_np[0, 0]
+        log(f"    D̂(v,v) = {D_vv_val}")
+        log(f"    |D̂(v,v)| = {np.abs(D_vv_val):.2e}")
 
-    log("  ✓ Hyperbolic pair constructed successfully")
+        if np.abs(D_vv_val) > 1e-10:
+            log(f"    WARNING: Expected D̂(v,v) = 0")
+
+        log("  ✓ Hyperbolic pair verified numerically")
+    else:
+        # Symbolic verification
+        log("  Computing D̂(u,v) symbolically...")
+        D_uv = (u.H * D_hat * v)[0, 0]
+        D_uv_simplified = simplify(D_uv)
+        log(f"    D̂(u,v) = {D_uv_simplified}")
+
+        if D_uv_simplified != 1:
+            log(f"    WARNING: Expected D̂(u,v) = 1, got {D_uv_simplified}")
+
+        log("  Computing D̂(v,v) symbolically...")
+        D_vv = (v.H * D_hat * v)[0, 0]
+        D_vv_simplified = simplify(D_vv)
+        log(f"    D̂(v,v) = {D_vv_simplified}")
+
+        if D_vv_simplified != 0:
+            log(f"    WARNING: Expected D̂(v,v) = 0, got {D_vv_simplified}")
+
+        log("  ✓ Hyperbolic pair constructed successfully")
+
     log("")
 
     # Construct extension vector
@@ -193,12 +268,38 @@ def main():
 
     # Verify isotropy with respect to all error forms
     log("Verifying u+v is isotropic with respect to all B̂_{λ,E,F}...")
-    log("(This may take some time...)")
+    if args.numerical:
+        log("(Using numerical checks - much faster)")
+    else:
+        log("(Using symbolic checks - this may take some time...)")
     log("")
 
-    all_isotropic, failed_pairs = verify_isotropy_on_all_error_forms(
-        extension_vector, basis, args.n_qubits, u
-    )
+    if args.numerical:
+        # Numerical verification
+        extension_vector_np = sympy_to_numpy(extension_vector)
+        failed_pairs = []
+        pair_count = 0
+        total_pairs = basis_size * basis_size
+
+        for E_idx in basis:
+            for F_idx in basis:
+                pair_count += 1
+                if pair_count % 100 == 0:
+                    log(f"  Checking pair {pair_count}/{total_pairs}...")
+
+                is_isotropic = check_isotropy_numerical(
+                    extension_vector_np, E_idx, F_idx, args.n_qubits, u
+                )
+
+                if not is_isotropic:
+                    failed_pairs.append((E_idx, F_idx))
+
+        all_isotropic = len(failed_pairs) == 0
+    else:
+        # Symbolic verification
+        all_isotropic, failed_pairs = verify_isotropy_on_all_error_forms(
+            extension_vector, basis, args.n_qubits, u
+        )
 
     if all_isotropic:
         log("")
