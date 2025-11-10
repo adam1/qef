@@ -38,6 +38,13 @@ from .matrix_io import (
     read_sparse_matrix_numerical,
 )
 
+from .isotropic_extension import (
+    find_hyperbolic_partner,
+    check_isotropy_on_error_form,
+    verify_isotropy_on_all_error_forms,
+    compute_isotropic_extension,
+)
+
 __version__ = "0.1.0"
 
 __all__ = [
@@ -57,4 +64,8 @@ __all__ = [
     "extract_dimension_from_file",
     "read_sparse_matrix_symbolic",
     "read_sparse_matrix_numerical",
+    "find_hyperbolic_partner",
+    "check_isotropy_on_error_form",
+    "verify_isotropy_on_all_error_forms",
+    "compute_isotropic_extension",
 ]

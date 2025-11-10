@@ -21,10 +21,14 @@ ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
 CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
 EVAL_DHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Dhat_quadratic_form.py
 
+# Scripts for isotropic extension
+ISOTROPIC_EXTENSION_SCRIPT := $(SCRIPTS_DIR)/compute_isotropic_extension.py
+
 # Output files
 OUTPUT_DIR := output
 LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
 DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
+EXTENSION_VECTOR_OUTPUT := $(OUTPUT_DIR)/extension_vector.txt
 
 # Matrix parameters
 LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
@@ -39,7 +43,7 @@ RUN_ID := $(shell date '+%s')_$$$$
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian isotropic-extension help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -55,6 +59,7 @@ help:
 	@echo "  eval-Dhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|D̂|v⟩ on |0_L⟩ and |1_L⟩"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
 	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
+	@echo "  isotropic-extension  - Compute isotropic extension M' = M ⊕ span(u+v) using Grove's algorithm"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
@@ -194,6 +199,21 @@ Bhat-hermitian: $(ALL_BHAT_HERMITIAN_SCRIPT) | $(OUTPUT_DIR)
 	@LOG_FILE=$(OUTPUT_DIR)/Bhat_hermitian_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(ALL_BHAT_HERMITIAN_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+
+#==============================================================================
+# Isotropic extension targets
+#==============================================================================
+
+# Compute isotropic extension M' = M ⊕ span(u+v)
+isotropic-extension: $(EXTENSION_VECTOR_OUTPUT)
+
+$(EXTENSION_VECTOR_OUTPUT): $(DHAT_FINAL_OUTPUT) $(ISOTROPIC_EXTENSION_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing isotropic extension using Grove's algorithm..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/isotropic_extension_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(ISOTROPIC_EXTENSION_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(EXTENSION_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets
