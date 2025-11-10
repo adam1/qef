@@ -33,7 +33,7 @@ from datetime import datetime
 # Add parent directory to path to import qef
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sympy import simplify
+from sympy import simplify, Add
 from qef.matrix_io import read_sparse_matrix_symbolic, log
 from qef.states import create_shor_logical_zero, create_shor_logical_one
 from qef.operators import get_basis_P_n_t, index_to_pauli_string
@@ -140,7 +140,14 @@ def main():
 
     try:
         v, b = find_hyperbolic_partner(u, D_hat)
-        log(f"  Step 2: Computed b = -½⟨w|D̂|w⟩ = {b}")
+
+        # Count terms in b (avoid printing large expression)
+        if isinstance(b, Add):
+            num_terms = len(b.args)
+        else:
+            num_terms = 1
+
+        log(f"  Step 2: Computed b = -½⟨w|D̂|w⟩ ({num_terms} terms)")
         log(f"  Step 3: Constructed v = bu + w")
     except ValueError as e:
         log(f"  ERROR: {e}")
