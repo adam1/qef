@@ -17,14 +17,20 @@ SIGNATURE_NUMERICAL_SCRIPT := $(SCRIPTS_DIR)/compute_signature_numerical.py
 
 # Scripts for B̂_{λ,E,F} analysis
 ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
-ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
+ANALYZE_BHAT_PROPERTIES_SCRIPT := $(SCRIPTS_DIR)/analyze_all_Bhat_properties.py
 CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
 EVAL_DHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Dhat_quadratic_form.py
+
+# Scripts for isotropic extension
+ISOTROPIC_EXTENSION_SCRIPT := $(SCRIPTS_DIR)/compute_isotropic_extension.py
+SIMULTANEOUS_HYPERBOLIC_SCRIPT := $(SCRIPTS_DIR)/compute_simultaneous_hyperbolic_partner.py
 
 # Output files
 OUTPUT_DIR := output
 LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
 DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
+EXTENSION_VECTOR_OUTPUT := $(OUTPUT_DIR)/extension_vector.txt
+W_VECTOR_OUTPUT := $(OUTPUT_DIR)/w_vector.txt
 
 # Matrix parameters
 LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
@@ -39,7 +45,7 @@ RUN_ID := $(shell date '+%s')_$$$$
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-properties isotropic-extension isotropic-extension-numerical simultaneous-w help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -54,7 +60,10 @@ help:
 	@echo "  check-Dhat-hermitian - Check if D̂ is Hermitian (symbolic)"
 	@echo "  eval-Dhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|D̂|v⟩ on |0_L⟩ and |1_L⟩"
 	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
-	@echo "  Bhat-hermitian       - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
+	@echo "  Bhat-properties      - Analyze properties of B̂_{λ,E,F} (Hermitian, skew-Hermitian, rank, singularity)"
+	@echo "  isotropic-extension  - Compute isotropic extension (symbolic, slow but exact)"
+	@echo "  isotropic-extension-numerical - Compute isotropic extension (numerical, fast)"
+	@echo "  simultaneous-w             - Solve simultaneous system for w: B_{λ,E,F}(u,w)=1 for all pairs"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
@@ -186,14 +195,49 @@ Bhat-on-M: $(ALL_BHAT_ON_M_SCRIPT) | $(OUTPUT_DIR)
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(ALL_BHAT_ON_M_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
-# Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}
-Bhat-hermitian: $(ALL_BHAT_HERMITIAN_SCRIPT) | $(OUTPUT_DIR)
+# Analyze properties of B̂_{λ,E,F} for all pairs in P_{9,1}
+Bhat-properties: $(ANALYZE_BHAT_PROPERTIES_SCRIPT) | $(OUTPUT_DIR)
 	@echo "========================================"
-	@echo "Checking Hermiticity of B̂_{λ,E,F} for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
+	@echo "Analyzing properties of B̂_{λ,E,F} for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
 	@echo "========================================"
-	@LOG_FILE=$(OUTPUT_DIR)/Bhat_hermitian_$(RUN_ID).log; \
+	@LOG_FILE=$(OUTPUT_DIR)/Bhat_properties_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
-	$(PYTHON) $(ALL_BHAT_HERMITIAN_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+	$(PYTHON) $(ANALYZE_BHAT_PROPERTIES_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+
+#==============================================================================
+# Isotropic extension targets
+#==============================================================================
+
+# Compute isotropic extension M' = M ⊕ span(u+v) (symbolic mode)
+isotropic-extension: $(EXTENSION_VECTOR_OUTPUT)
+
+$(EXTENSION_VECTOR_OUTPUT): $(DHAT_FINAL_OUTPUT) $(ISOTROPIC_EXTENSION_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing isotropic extension using Grove's algorithm (symbolic)..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/isotropic_extension_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(ISOTROPIC_EXTENSION_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(EXTENSION_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+
+# Compute isotropic extension M' = M ⊕ span(u+v) (numerical mode - fast)
+isotropic-extension-numerical: $(DHAT_FINAL_OUTPUT) $(ISOTROPIC_EXTENSION_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Computing isotropic extension using Grove's algorithm (numerical)..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/isotropic_extension_numerical_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(ISOTROPIC_EXTENSION_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(EXTENSION_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) --numerical 2>&1 | tee $$LOG_FILE
+
+# Solve simultaneous system for w: B_{λ,E,F}(u,w) = 1 for all pairs
+simultaneous-w: $(W_VECTOR_OUTPUT)
+
+$(W_VECTOR_OUTPUT): $(SIMULTANEOUS_HYPERBOLIC_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Solving simultaneous system for w..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/simultaneous_w_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(SIMULTANEOUS_HYPERBOLIC_SCRIPT) -o $(W_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets

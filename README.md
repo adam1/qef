@@ -127,3 +127,59 @@ Computing signature of D̂ (numerical)...
 [2025-11-09 06:37:46] ======================================================================
 ```
 
+
+**Isotropic Extension Algorithm (a failed experiment)**
+
+Assume $M$ corrects $\mathcal{E}$ and we have bases $M = \{v_i\}$ and $B = \{E_i\}$. 
+
+(1) Start with $u = v_1$, which is isotropic with respect to total error form $D = D_{\mathcal{E}, \lambda}$. FollowingA \[Grove Prop. 10.8\] there exists $w \in \mathcal{H}_n$ with $D(u, w) = 1$. (Since $D$ is nondegenerate.)
+
+ Solve the linear equation $$u^\dagger \hat{D} w = 1$$ for $w$.  Use `SymPy linsolve()`
+
+(2) Then $D(w, w) \in \mathbb{C}$ is a number (actually it's real).  Take $b = -\frac{1}{2} D(w,w)$, and let $v = bu + w$. Then $(u, v)$ is a hyperbolic pair.  We already have $D(u,u) = 0$.  And
+$$
+\begin{align*} D(v, v) &= D(bu + w, bu+w) = D(bu, bu) + D(bu, w) + D(w, bu) + D(w, w) \\
+&= b \bar{b}D(u,u) + \bar{b}D(u,w) + b D(w,u) + D(w,w)\\
+&= 0 + \bar{b} + b + D(w,w)\\
+&= -\tfrac{1}{2} D(w,w) + -\tfrac{1}{2} D(w,w) + D(w,w) \\
+&= 0,
+\end{align*} 
+$$
+so $v$ is isotropic.  And
+$$
+D(u, v) = D(u, bu + w) = D(u, bu) + D(u, w) = bD(u, u) + 1 = 1.
+$$
+
+(3) For each $i,j$, check whether $u+v$ is isotropic with respect to error form $B_{\lambda, E_i, E_j}$. 
+If so, let $N = M \oplus \langle u+v \rangle$.
+
+
+**Simultaneous Hyperbolic Pairing**
+
+Instead of solving the linear equation $u^\dagger \hat{D} w = 1$, we simultaenously solve all of the equations
+
+$$
+u^\dagger \hat{B}_{\lambda, E_i, E_j} w = 1.
+$$
+This can be done by stacking them into a single linear system:
+$$
+\begin{align*}
+q_{1,1} w &= 1\\
+q_{1,2} w &= 1\\
+& \vdots\\
+q_{1,28} w &= 1\\
+\vdots\\
+q_{28,28} w &= 1
+\end{align*}
+$$
+where $q_{i,j} = u^\dagger \hat{B}_{\lambda, E_i, E_f}$, a $1 \times 512$ matrix.  So the stacked system has 784 rows, representing a $784 \times 512$ matrix
+$$
+Q w = [1, \ldots, 1]^t.
+$$
+
+Then we have $w$ such that for all $i,j$, 
+$$
+B_{\lambda, E_i, E_j}(u, w) = 1.
+$$
+
+
