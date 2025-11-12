@@ -33,7 +33,7 @@ from datetime import datetime
 # Add parent directory to path to import qef
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sympy import simplify, Add
+from sympy import simplify, Add, re as sympy_re, im as sympy_im, N
 import numpy as np
 from qef.matrix_io import read_sparse_matrix_symbolic, log
 from qef.states import create_shor_logical_zero, create_shor_logical_one
@@ -52,7 +52,15 @@ def timestamp():
 
 def sympy_to_numpy(matrix):
     """Convert SymPy Matrix to NumPy array with complex float values."""
-    return np.array(matrix.tolist(), dtype=complex)
+    result = np.zeros(matrix.shape, dtype=complex)
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            element = matrix[i, j]
+            # Extract real and imaginary parts, evaluate numerically, then convert to float
+            real_part = float(N(sympy_re(element)))
+            imag_part = float(N(sympy_im(element)))
+            result[i, j] = complex(real_part, imag_part)
+    return result
 
 
 def check_isotropy_numerical(vector_np, E_idx, F_idx, n_qubits, ket_v, tol=1e-10):

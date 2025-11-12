@@ -71,6 +71,14 @@ def find_hyperbolic_partner(u: Matrix, D_hat: Matrix) -> Tuple[Matrix, complex]:
     # Convert solution tuple to column vector
     w = Matrix([sol for sol in solution])
 
+    # Check for free symbols (parameters) in the solution
+    # These are parameters that weren't constrained by the equation
+    free_symbols = w.free_symbols
+    if free_symbols:
+        # Substitute all free parameters with 0 to get a concrete solution
+        substitutions = {sym: 0 for sym in free_symbols}
+        w = w.subs(substitutions)
+
     # Compute D(w,w) = w†D̂w
     D_ww = (w.H * D_hat * w)[0, 0]
 
