@@ -43,6 +43,7 @@ from .isotropic_extension import (
     check_isotropy_on_error_form,
     verify_isotropy_on_all_error_forms,
     compute_isotropic_extension,
+    find_simultaneous_hyperbolic_partner,
 )
 
 __version__ = "0.1.0"
@@ -68,4 +69,5 @@ __all__ = [
     "check_isotropy_on_error_form",
     "verify_isotropy_on_all_error_forms",
     "compute_isotropic_extension",
+    "find_simultaneous_hyperbolic_partner",
 ]

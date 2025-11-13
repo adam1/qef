@@ -128,7 +128,7 @@ Computing signature of D̂ (numerical)...
 ```
 
 
-**Isotropic Extension Algorithm**
+**Isotropic Extension Algorithm (xxx need update)**
 
 Assume $M$ corrects $\mathcal{E}$ and we have bases $M = \{v_i\}$ and $B = \{E_i\}$. 
 
@@ -152,3 +152,34 @@ $$
 
 (3) For each $i,j$, check whether $u+v$ is isotropic with respect to error form $B_{\lambda, E_i, E_j}$. 
 If so, let $N = M \oplus \langle u+v \rangle$.
+
+
+**Simultaneous Hyperbolic Pairing**
+
+Instead of solving the linear equation $u^\dagger \hat{D} w = 1$, we simultaenously solve all of the equations
+
+$$
+u^\dagger \hat{B}_{\lambda, E_i, E_j} w = 1.
+$$
+This can be done by stacking them into a single linear system:
+$$
+\begin{align*}
+q_{1,1} w &= 1\\
+q_{1,2} w &= 1\\
+& \vdots\\
+q_{1,28} w &= 1\\
+\vdots\\
+q_{28,28} w &= 1
+\end{align*}
+$$
+where $q_{i,j} = u^\dagger \hat{B}_{\lambda, E_i, E_f}$, a $1 \times 512$ matrix.  So the stacked system has 784 rows, representing a $784 \times 512$ matrix
+$$
+Q w = [1, \ldots, 1]^t.
+$$
+
+Then we have $w$ such that for all $i,j$, 
+$$
+B_{\lambda, E_i, E_j}(u, w) = 1.
+$$
+
+

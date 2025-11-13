@@ -20,6 +20,7 @@ from sympy import Matrix, linsolve, symbols, simplify
 from typing import Tuple, List, Optional
 
 from .error_forms import compute_B_hat_lambda_EF
+from .matrix_io import log
 
 
 def find_hyperbolic_partner(u: Matrix, D_hat: Matrix) -> Tuple[Matrix, complex]:
@@ -202,3 +203,104 @@ def compute_isotropic_extension(
         return extension_vector
     else:
         return None
+
+
+def find_simultaneous_hyperbolic_partner(
+    u: Matrix,
+    basis: List[int],
+    n_qubits: int,
+    ket_v: Matrix,
+    verbose: bool = False
+) -> Matrix:
+    """
+    Find w such that B_{λ,E_i,E_j}(u,w) = 1 for all (E_i,E_j) pairs.
+
+    This solves the stacked system:
+        Q w = [1, 1, ..., 1]^T
+
+    where Q is a (basis_size^2 × dim) matrix with rows q_{i,j} = u†B̂_{λ,E_i,E_j}.
+
+    Args:
+        u: Isotropic vector from M (e.g., |0_L⟩)
+        basis: Error operator basis (from P_{n,t})
+        n_qubits: Number of qubits
+        ket_v: Reference state for λ computation (e.g., |0_L⟩)
+        verbose: If True, print progress messages
+
+    Returns:
+        Vector w satisfying all constraints
+
+    Raises:
+        ValueError: If no solution exists
+    """
+    dim = 2 ** n_qubits
+    basis_size = len(basis)
+    num_constraints = basis_size * basis_size
+
+    if verbose:
+        log(f"Building stacked system Q w = 1...")
+        log(f"  Dimension of w: {dim}")
+        log(f"  Number of constraints: {num_constraints}")
+        log(f"  System size: {num_constraints} × {dim}")
+        log("")
+
+    # Create symbolic variables for w components
+    w_vars = symbols(f'w0:{dim}')
+    w_symbolic = Matrix(w_vars)
+
+    # Build the stacked system
+    equations = []
+    constraint_count = 0
+
+    for i, E_idx in enumerate(basis):
+        for j, F_idx in enumerate(basis):
+            constraint_count += 1
+
+            if verbose and constraint_count % 100 == 0:
+                log(f"  Building constraint {constraint_count}/{num_constraints}...")
+
+            # Compute B̂_{λ,E_i,E_j}
+            B_hat = compute_B_hat_lambda_EF(E_idx, F_idx, n_qubits, ket_v)
+
+            # Compute q_{i,j} = u†B̂_{λ,E_i,E_j}
+            # This is a row vector (1 × dim)
+            q_row = u.H * B_hat
+
+            # Form equation: q_{i,j} · w = 1
+            # q_row is 1×dim, w_symbolic is dim×1, result is scalar
+            lhs = (q_row * w_symbolic)[0, 0]
+            equation = lhs - 1
+
+            equations.append(equation)
+
+    if verbose:
+        log("")
+        log(f"All {num_constraints} constraints built!")
+        log("")
+        log("Solving stacked system...")
+
+    # Solve the stacked system
+    solutions = linsolve(equations, w_vars)
+
+    if not solutions:
+        raise ValueError("No solution found for stacked system")
+
+    # Get the first solution
+    solution = list(solutions)[0]
+
+    # Convert solution tuple to column vector
+    w = Matrix([sol for sol in solution])
+
+    # Check for free symbols and substitute with 0
+    free_symbols = w.free_symbols
+    if free_symbols:
+        if verbose:
+            log(f"  Found {len(free_symbols)} free parameters, setting to 0...")
+        substitutions = {sym: 0 for sym in free_symbols}
+        w = w.subs(substitutions)
+
+    if verbose:
+        log("  Solution found!")
+        log("")
+
+    return w

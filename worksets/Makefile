@@ -23,12 +23,14 @@ EVAL_DHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Dhat_quadratic_form.py
 
 # Scripts for isotropic extension
 ISOTROPIC_EXTENSION_SCRIPT := $(SCRIPTS_DIR)/compute_isotropic_extension.py
+SIMULTANEOUS_HYPERBOLIC_SCRIPT := $(SCRIPTS_DIR)/compute_simultaneous_hyperbolic_partner.py
 
 # Output files
 OUTPUT_DIR := output
 LAMBDAHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/lambdaHat.txt
 DHAT_FINAL_OUTPUT := $(OUTPUT_DIR)/Dhat.txt
 EXTENSION_VECTOR_OUTPUT := $(OUTPUT_DIR)/extension_vector.txt
+W_VECTOR_OUTPUT := $(OUTPUT_DIR)/w_vector.txt
 
 # Matrix parameters
 LAMBDAHAT_MATRIX_DIM := 28  # Dimension of P_{9,1} basis
@@ -43,7 +45,7 @@ RUN_ID := $(shell date '+%s')_$$$$
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian isotropic-extension isotropic-extension-numerical help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian isotropic-extension isotropic-extension-numerical simultaneous-w help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -61,6 +63,7 @@ help:
 	@echo "  Bhat-hermitian             - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
 	@echo "  isotropic-extension        - Compute isotropic extension (symbolic, slow but exact)"
 	@echo "  isotropic-extension-numerical - Compute isotropic extension (numerical, fast)"
+	@echo "  simultaneous-w             - Solve simultaneous system for w: B_{λ,E,F}(u,w)=1 for all pairs"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
 	@echo "  clean-Dhat           - Remove D̂ output files and logs"
 	@echo "  clean                - Remove all output files and logs"
@@ -224,6 +227,17 @@ isotropic-extension-numerical: $(DHAT_FINAL_OUTPUT) $(ISOTROPIC_EXTENSION_SCRIPT
 	@LOG_FILE=$(OUTPUT_DIR)/isotropic_extension_numerical_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(ISOTROPIC_EXTENSION_SCRIPT) -i $(DHAT_FINAL_OUTPUT) -o $(EXTENSION_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) --numerical 2>&1 | tee $$LOG_FILE
+
+# Solve simultaneous system for w: B_{λ,E,F}(u,w) = 1 for all pairs
+simultaneous-w: $(W_VECTOR_OUTPUT)
+
+$(W_VECTOR_OUTPUT): $(SIMULTANEOUS_HYPERBOLIC_SCRIPT) | $(OUTPUT_DIR)
+	@echo "========================================"
+	@echo "Solving simultaneous system for w..."
+	@echo "========================================"
+	@LOG_FILE=$(OUTPUT_DIR)/simultaneous_w_$(RUN_ID).log; \
+	echo "Log file: $$LOG_FILE"; \
+	$(PYTHON) $(SIMULTANEOUS_HYPERBOLIC_SCRIPT) -o $(W_VECTOR_OUTPUT) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Clean targets
