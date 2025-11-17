@@ -27,6 +27,7 @@ import numpy as np
 from scipy.linalg import eigh
 
 from qef.matrix_io import extract_dimension_from_file, read_sparse_matrix_numerical, log
+from qef.matrix_utils import compute_signature
 
 
 def compute_signature_eigenvalues(M, tolerance=1e-10):
@@ -41,10 +42,11 @@ def compute_signature_eigenvalues(M, tolerance=1e-10):
         tolerance: Threshold for considering eigenvalues as zero
 
     Returns:
-        Tuple of (p, q, r, eigenvalues) where:
+        Tuple of (p, q, r, witt_index, eigenvalues) where:
           p = number of positive eigenvalues
           q = number of negative eigenvalues
           r = nullity (number of zero eigenvalues)
+          witt_index = min(p, q)
           eigenvalues = array of all eigenvalues (real, sorted descending)
     """
     log(f"Computing eigenvalues for {M.shape[0]}×{M.shape[1]} matrix...")
@@ -82,14 +84,13 @@ def compute_signature_eigenvalues(M, tolerance=1e-10):
     else:
         log(f"  Eigendecomposition verified successfully")
 
-    # Classify eigenvalues
-    p = np.sum(eigenvalues > tolerance)              # Positive eigenvalues
-    q = np.sum(eigenvalues < -tolerance)             # Negative eigenvalues
-    r = np.sum(np.abs(eigenvalues) <= tolerance)     # Zero eigenvalues (nullity)
+    # Classify eigenvalues using library function
+    p, q, r, witt_index = compute_signature(eigenvalues, tolerance=tolerance)
 
     rank = p + q
 
     log(f"  Signature: (p={p}, q={q}, r={r})")
+    log(f"  Witt index: {witt_index}")
     log(f"  Rank = p + q = {rank}")
     log(f"  Nullity = r = {r}")
     log(f"  Dimension = p + q + r = {p + q + r}")
@@ -105,7 +106,7 @@ def compute_signature_eigenvalues(M, tolerance=1e-10):
     if q > 0:
         log(f"  Largest 5 negative eigenvalues (by abs value): {np.sort(eigenvalues[eigenvalues < -tolerance])[:5]}")
 
-    return p, q, r, eigenvalues_sorted
+    return p, q, r, witt_index, eigenvalues_sorted
 
 
 def main():
@@ -150,7 +151,7 @@ def main():
     log("")
 
     # Compute signature
-    p, q, r, eigenvalues = compute_signature_eigenvalues(M, tolerance=args.tolerance)
+    p, q, r, witt_index, eigenvalues = compute_signature_eigenvalues(M, tolerance=args.tolerance)
     log("")
 
     log("=" * 70)
@@ -159,6 +160,7 @@ def main():
     log(f"  p = {p} (positive eigenvalues)")
     log(f"  q = {q} (negative eigenvalues)")
     log(f"  r = {r} (zero eigenvalues / nullity)")
+    log(f"  Witt index = {witt_index}")
     log(f"  Rank = p + q = {p + q}")
     log("=" * 70)
 

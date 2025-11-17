@@ -31,6 +31,8 @@ from .error_forms import (
 from .matrix_utils import (
     is_hermitian,
     is_skew_hermitian,
+    sympy_to_numpy,
+    compute_signature,
 )
 
 from .matrix_io import (
@@ -64,6 +66,8 @@ __all__ = [
     "compute_B_hat_lambda_EF",
     "is_hermitian",
     "is_skew_hermitian",
+    "sympy_to_numpy",
+    "compute_signature",
     "extract_dimension_from_file",
     "read_sparse_matrix_symbolic",
     "read_sparse_matrix_numerical",

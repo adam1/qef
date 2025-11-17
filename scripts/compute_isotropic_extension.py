@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from sympy import simplify, Add
 import numpy as np
 from qef.matrix_io import read_sparse_matrix_symbolic, log
+from qef.matrix_utils import sympy_to_numpy
 from qef.states import create_shor_logical_zero, create_shor_logical_one
 from qef.operators import get_basis_P_n_t, index_to_pauli_string
 from qef.isotropic_extension import (
@@ -48,11 +49,6 @@ from qef.isotropic_extension import (
 def timestamp():
     """Return current timestamp as a string."""
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-def sympy_to_numpy(matrix):
-    """Convert SymPy Matrix to NumPy array with complex float values."""
-    return np.array(matrix.applyfunc(lambda x: complex(x.evalf())).tolist(), dtype=complex)
 
 
 def check_isotropy_numerical(vector_np, E_idx, F_idx, n_qubits, ket_v, tol=1e-10):

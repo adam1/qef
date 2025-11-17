@@ -6,9 +6,10 @@ For each (E,F) pair in P_{9,1}, this script:
 1. Computes the full B̂_{λ,E,F} = E†F - λ(E,F)·I matrix
 2. Checks if the matrix is Hermitian (M† = M)
 3. Checks if the matrix is skew-Hermitian (M† = -M)
-4. Computes the rank (symbolically)
-5. Checks if the matrix is singular (rank < dimension)
-6. Reports summary statistics
+4. Computes the signature (p, q, r) numerically via eigenvalues
+5. Computes the Witt index = min(p, q)
+6. Checks if the matrix is singular (rank < dimension)
+7. Reports summary statistics
 
 Usage:
     python analyze_all_Bhat_properties.py -o output_dir [options]
@@ -17,6 +18,7 @@ Arguments:
     -o, --output: Output directory for logs and summary
     -n, --n_qubits: Number of qubits (default: 9)
     -t, --max_weight: Maximum weight t for P_{n,t} basis (default: 1)
+    --tolerance: Tolerance for eigenvalue classification (default: 1e-10)
 """
 
 import argparse
@@ -28,10 +30,13 @@ import os
 # Add parent directory to path to import qef
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import numpy as np
+from scipy.linalg import eigh
+
 from qef.operators import get_basis_P_n_t, index_to_pauli_string
 from qef.states import create_shor_logical_zero
 from qef.error_forms import compute_B_hat_lambda_EF
-from qef.matrix_utils import is_hermitian, is_skew_hermitian
+from qef.matrix_utils import is_hermitian, is_skew_hermitian, sympy_to_numpy, compute_signature
 
 
 def timestamp():
@@ -69,6 +74,12 @@ def main():
         type=int,
         default=1,
         help='Maximum weight t for P_{n,t} basis (default: 1)'
+    )
+    parser.add_argument(
+        '--tolerance',
+        type=float,
+        default=1e-10,
+        help='Tolerance for eigenvalue classification (default: 1e-10)'
     )
 
     args = parser.parse_args()
@@ -116,15 +127,18 @@ def main():
     skew_hermitian_count = 0
     singular_count = 0
     rank_distribution = {}
+    signature_distribution = {}
+    witt_index_distribution = {}
 
     with open(summary_file, 'w') as summary:
-        summary.write(f"# B̂_{{λ,E,F}} matrix property analysis (symbolic computation)\n")
+        summary.write(f"# B̂_{{λ,E,F}} matrix property analysis\n")
         summary.write(f"# Basis: P_{{{args.n_qubits},{args.max_weight}}}\n")
         summary.write(f"# Matrix dimension: {dim}×{dim}\n")
         summary.write(f"# Total pairs: {total_pairs}\n")
         summary.write(f"# Run ID: {run_tag}\n")
         summary.write(f"# Timestamp: {timestamp()}\n")
-        summary.write(f"# Format: E_idx F_idx E_str F_str hermitian skew_hermitian rank singular\n")
+        summary.write(f"# Eigenvalue tolerance: {args.tolerance}\n")
+        summary.write(f"# Format: E_idx F_idx E_str F_str hermitian skew_hermitian p q r rank witt_index singular\n")
         summary.write("\n")
 
         # Loop over all (E, F) pairs
@@ -151,19 +165,27 @@ def main():
                 if skew_hermitian:
                     skew_hermitian_count += 1
 
-                # Compute rank
-                rank = B_hat_full.rank()
+                # Convert to numerical for signature computation
+                B_hat_np = sympy_to_numpy(B_hat_full)
+
+                # Compute eigenvalues and signature
+                eigenvalues = eigh(B_hat_np, eigvals_only=True)
+                p, q, r, witt_index = compute_signature(eigenvalues, tolerance=args.tolerance)
+                rank = p + q
 
                 # Check if singular
                 singular = (rank < dim)
                 if singular:
                     singular_count += 1
 
-                # Track rank distribution
+                # Track distributions
                 rank_distribution[rank] = rank_distribution.get(rank, 0) + 1
+                sig_key = (p, q, r)
+                signature_distribution[sig_key] = signature_distribution.get(sig_key, 0) + 1
+                witt_index_distribution[witt_index] = witt_index_distribution.get(witt_index, 0) + 1
 
                 # Write to summary
-                summary.write(f"{E_idx} {F_idx} {E_str} {F_str} {hermitian} {skew_hermitian} {rank} {singular}\n")
+                summary.write(f"{E_idx} {F_idx} {E_str} {F_str} {hermitian} {skew_hermitian} {p} {q} {r} {rank} {witt_index} {singular}\n")
                 summary.flush()
 
     log("")
@@ -182,6 +204,16 @@ def main():
     for rank in sorted(rank_distribution.keys()):
         count = rank_distribution[rank]
         log(f"  Rank {rank}: {count} matrices ({100*count/total_pairs:.1f}%)")
+    log("")
+    log("Signature distribution (p, q, r):")
+    for sig in sorted(signature_distribution.keys()):
+        count = signature_distribution[sig]
+        log(f"  {sig}: {count} matrices ({100*count/total_pairs:.1f}%)")
+    log("")
+    log("Witt index distribution:")
+    for witt in sorted(witt_index_distribution.keys()):
+        count = witt_index_distribution[witt]
+        log(f"  Witt index {witt}: {count} matrices ({100*count/total_pairs:.1f}%)")
     log("")
 
     log(f"Summary written to: {summary_file}")
