@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """
-Check if B̂_{λ,E,F} is Hermitian for all (E,F) pairs in P_{9,1}.
+Analyze properties of B̂_{λ,E,F} matrices for all (E,F) pairs in P_{9,1}.
 
 For each (E,F) pair in P_{9,1}, this script:
 1. Computes the full B̂_{λ,E,F} = E†F - λ(E,F)·I matrix
-2. Checks if the matrix is Hermitian (symbolically)
-3. Reports summary counts of Hermitian vs non-Hermitian matrices
+2. Checks if the matrix is Hermitian (M† = M)
+3. Checks if the matrix is skew-Hermitian (M† = -M)
+4. Computes the rank (symbolically)
+5. Checks if the matrix is singular (rank < dimension)
+6. Reports summary statistics
 
 Usage:
-    python compute_all_Bhat_hermitian_check.py -o output_dir [options]
+    python analyze_all_Bhat_properties.py -o output_dir [options]
 
 Arguments:
     -o, --output: Output directory for logs and summary
@@ -28,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from qef.operators import get_basis_P_n_t, index_to_pauli_string
 from qef.states import create_shor_logical_zero
 from qef.error_forms import compute_B_hat_lambda_EF
-from qef.matrix_utils import is_hermitian
+from qef.matrix_utils import is_hermitian, is_skew_hermitian
 
 
 def timestamp():
@@ -48,7 +51,7 @@ def run_id():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Check if B̂_{λ,E,F} is Hermitian for all pairs in P_{n,t}"
+        description="Analyze properties of B̂_{λ,E,F} matrices for all pairs in P_{n,t}"
     )
     parser.add_argument(
         '-o', '--output',
@@ -78,7 +81,7 @@ def main():
     run_tag = run_id()
 
     log("=" * 70)
-    log(f"Checking Hermiticity of B̂_{{λ,E,F}} matrices")
+    log(f"Analyzing properties of B̂_{{λ,E,F}} matrices")
     log(f"Basis: P_{{{args.n_qubits},{args.max_weight}}}")
     log(f"Output directory: {output_dir}")
     log(f"Run ID: {run_tag}")
@@ -98,26 +101,30 @@ def main():
     log(f"Basis size: {basis_size}")
     log("")
 
+    dim = 2 ** args.n_qubits
     total_pairs = basis_size * basis_size
     pair_count = 0
 
     # Summary file
-    summary_file = output_dir / f"Bhat_hermitian_summary_{run_tag}.txt"
+    summary_file = output_dir / f"Bhat_properties_summary_{run_tag}.txt"
 
     log(f"Creating summary file: {summary_file}")
     log("")
 
     # Track results
-    hermitian_pairs = []
-    non_hermitian_pairs = []
+    hermitian_count = 0
+    skew_hermitian_count = 0
+    singular_count = 0
+    rank_distribution = {}
 
     with open(summary_file, 'w') as summary:
-        summary.write(f"# B̂_{{λ,E,F}} Hermiticity check (symbolic computation)\n")
+        summary.write(f"# B̂_{{λ,E,F}} matrix property analysis (symbolic computation)\n")
         summary.write(f"# Basis: P_{{{args.n_qubits},{args.max_weight}}}\n")
+        summary.write(f"# Matrix dimension: {dim}×{dim}\n")
         summary.write(f"# Total pairs: {total_pairs}\n")
         summary.write(f"# Run ID: {run_tag}\n")
         summary.write(f"# Timestamp: {timestamp()}\n")
-        summary.write(f"# Format: E_index F_index E_str F_str is_hermitian\n")
+        summary.write(f"# Format: E_idx F_idx E_str F_str hermitian skew_hermitian rank singular\n")
         summary.write("\n")
 
         # Loop over all (E, F) pairs
@@ -131,20 +138,32 @@ def main():
                 if pair_count % 50 == 0:
                     log(f"[{pair_count}/{total_pairs}] Processing E={E_idx} ({E_str}), F={F_idx} ({F_str})")
 
-                # Compute full B̂_{λ,E,F} (512×512 for 9 qubits)
+                # Compute full B̂_{λ,E,F}
                 B_hat_full = compute_B_hat_lambda_EF(E_idx, F_idx, args.n_qubits, ket_0L)
 
                 # Check if Hermitian
                 hermitian = is_hermitian(B_hat_full)
-
-                # Track results
                 if hermitian:
-                    hermitian_pairs.append((E_idx, F_idx, E_str, F_str))
-                else:
-                    non_hermitian_pairs.append((E_idx, F_idx, E_str, F_str))
+                    hermitian_count += 1
+
+                # Check if skew-Hermitian
+                skew_hermitian = is_skew_hermitian(B_hat_full)
+                if skew_hermitian:
+                    skew_hermitian_count += 1
+
+                # Compute rank
+                rank = B_hat_full.rank()
+
+                # Check if singular
+                singular = (rank < dim)
+                if singular:
+                    singular_count += 1
+
+                # Track rank distribution
+                rank_distribution[rank] = rank_distribution.get(rank, 0) + 1
 
                 # Write to summary
-                summary.write(f"{E_idx} {F_idx} {E_str} {F_str} {hermitian}\n")
+                summary.write(f"{E_idx} {F_idx} {E_str} {F_str} {hermitian} {skew_hermitian} {rank} {singular}\n")
                 summary.flush()
 
     log("")
@@ -152,8 +171,17 @@ def main():
     log("All pairs processed!")
     log("")
     log(f"Total pairs checked: {total_pairs}")
-    log(f"Hermitian matrices: {len(hermitian_pairs)}")
-    log(f"Non-Hermitian matrices: {len(non_hermitian_pairs)}")
+    log("")
+    log("Property counts:")
+    log(f"  Hermitian matrices:       {hermitian_count} ({100*hermitian_count/total_pairs:.1f}%)")
+    log(f"  Skew-Hermitian matrices:  {skew_hermitian_count} ({100*skew_hermitian_count/total_pairs:.1f}%)")
+    log(f"  Singular matrices:        {singular_count} ({100*singular_count/total_pairs:.1f}%)")
+    log(f"  Non-singular matrices:    {total_pairs - singular_count} ({100*(total_pairs-singular_count)/total_pairs:.1f}%)")
+    log("")
+    log("Rank distribution:")
+    for rank in sorted(rank_distribution.keys()):
+        count = rank_distribution[rank]
+        log(f"  Rank {rank}: {count} matrices ({100*count/total_pairs:.1f}%)")
     log("")
 
     log(f"Summary written to: {summary_file}")

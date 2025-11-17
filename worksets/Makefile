@@ -17,7 +17,7 @@ SIGNATURE_NUMERICAL_SCRIPT := $(SCRIPTS_DIR)/compute_signature_numerical.py
 
 # Scripts for B̂_{λ,E,F} analysis
 ALL_BHAT_ON_M_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_on_M.py
-ALL_BHAT_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/compute_all_Bhat_hermitian_check.py
+ANALYZE_BHAT_PROPERTIES_SCRIPT := $(SCRIPTS_DIR)/analyze_all_Bhat_properties.py
 CHECK_HERMITIAN_SCRIPT := $(SCRIPTS_DIR)/check_hermitian.py
 EVAL_DHAT_QUADRATIC_SCRIPT := $(SCRIPTS_DIR)/evaluate_Dhat_quadratic_form.py
 
@@ -45,7 +45,7 @@ RUN_ID := $(shell date '+%s')_$$$$
 LAMBDAHAT_PARTIAL_FILES := $(foreach i,$(shell seq 0 $$(($(NUM_WORKERS) - 1))),$(OUTPUT_DIR)/lambdaHat_partial_$(i).txt)
 
 
-.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-hermitian isotropic-extension isotropic-extension-numerical simultaneous-w help
+.PHONY: all clean lambdaHat Dhat clean-lambdaHat clean-Dhat rank-lambdaHat rank-Dhat signature-lambdaHat signature-Dhat check-Dhat-hermitian eval-Dhat-quadratic Bhat-on-M Bhat-properties isotropic-extension isotropic-extension-numerical simultaneous-w help
 
 help:
 	@echo "Makefile for computing quantum error correction matrices"
@@ -59,9 +59,9 @@ help:
 	@echo "  signature-Dhat       - Compute the signature of D̂ (numerical, via eigenvalues)"
 	@echo "  check-Dhat-hermitian - Check if D̂ is Hermitian (symbolic)"
 	@echo "  eval-Dhat-quadratic  - Evaluate quadratic form Q(v) = ⟨v|D̂|v⟩ on |0_L⟩ and |1_L⟩"
-	@echo "  Bhat-on-M                  - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
-	@echo "  Bhat-hermitian             - Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}"
-	@echo "  isotropic-extension        - Compute isotropic extension (symbolic, slow but exact)"
+	@echo "  Bhat-on-M            - Verify B̂_{λ,E,F} = 0 on code space M for all pairs in P_{9,1}"
+	@echo "  Bhat-properties      - Analyze properties of B̂_{λ,E,F} (Hermitian, skew-Hermitian, rank, singularity)"
+	@echo "  isotropic-extension  - Compute isotropic extension (symbolic, slow but exact)"
 	@echo "  isotropic-extension-numerical - Compute isotropic extension (numerical, fast)"
 	@echo "  simultaneous-w             - Solve simultaneous system for w: B_{λ,E,F}(u,w)=1 for all pairs"
 	@echo "  clean-lambdaHat      - Remove lambdaHat output files and logs"
@@ -195,14 +195,14 @@ Bhat-on-M: $(ALL_BHAT_ON_M_SCRIPT) | $(OUTPUT_DIR)
 	echo "Log file: $$LOG_FILE"; \
 	$(PYTHON) $(ALL_BHAT_ON_M_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
-# Check Hermiticity of B̂_{λ,E,F} for all pairs in P_{9,1}
-Bhat-hermitian: $(ALL_BHAT_HERMITIAN_SCRIPT) | $(OUTPUT_DIR)
+# Analyze properties of B̂_{λ,E,F} for all pairs in P_{9,1}
+Bhat-properties: $(ANALYZE_BHAT_PROPERTIES_SCRIPT) | $(OUTPUT_DIR)
 	@echo "========================================"
-	@echo "Checking Hermiticity of B̂_{λ,E,F} for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
+	@echo "Analyzing properties of B̂_{λ,E,F} for all pairs in P_{$(N_QUBITS),$(MAX_WEIGHT)}..."
 	@echo "========================================"
-	@LOG_FILE=$(OUTPUT_DIR)/Bhat_hermitian_$(RUN_ID).log; \
+	@LOG_FILE=$(OUTPUT_DIR)/Bhat_properties_$(RUN_ID).log; \
 	echo "Log file: $$LOG_FILE"; \
-	$(PYTHON) $(ALL_BHAT_HERMITIAN_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
+	$(PYTHON) $(ANALYZE_BHAT_PROPERTIES_SCRIPT) -o $(OUTPUT_DIR) -n $(N_QUBITS) -t $(MAX_WEIGHT) 2>&1 | tee $$LOG_FILE
 
 #==============================================================================
 # Isotropic extension targets

@@ -46,3 +46,44 @@ def is_hermitian(M: Matrix) -> bool:
                 return False
 
     return True
+
+
+def is_skew_hermitian(M: Matrix) -> bool:
+    """
+    Check if a matrix is skew-Hermitian (symbolically).
+
+    A matrix M is skew-Hermitian if M† = -M, where M† is the conjugate transpose.
+    Equivalently, M is skew-Hermitian if M + M† = 0.
+
+    Args:
+        M: A SymPy Matrix to check
+
+    Returns:
+        True if M is skew-Hermitian, False otherwise
+
+    Examples:
+        >>> from sympy import Matrix, I
+        >>> M = Matrix([[0, 1+I], [-(1-I), 0]])
+        >>> is_skew_hermitian(M)
+        True
+
+        >>> M = Matrix([[1, I], [-I, 1]])
+        >>> is_skew_hermitian(M)
+        False
+    """
+    if M.rows != M.cols:
+        return False
+
+    # Compute conjugate transpose
+    M_dagger = M.H
+
+    # Check if M† = -M by checking if M + M† = 0
+    sum_matrix = M + M_dagger
+
+    # Symbolically simplify and check each entry
+    for i in range(sum_matrix.rows):
+        for j in range(sum_matrix.cols):
+            if simplify(sum_matrix[i, j]) != 0:
+                return False
+
+    return True
